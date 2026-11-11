@@ -93,6 +93,7 @@ section{display:flex;flex-direction:column;gap:.75rem}
 /* path */
 .lvl{border-radius:20px;padding:.9rem 1.1rem;color:#fff;display:flex;flex-direction:column;gap:.2rem;box-shadow:0 5px 0 rgba(0,0,0,.15)}
 .lvl.l1{background:var(--pri)}.lvl.l2{background:var(--sky)}.lvl.l3{background:var(--berry)}.lvl.l4{background:var(--plum)}
+.lvl.l5{background:#e8772e}.lvl.l6{background:var(--ink)}
 .lvl.locked{background:#9aa5ba}
 .lvl small{opacity:.92}
 .path{display:flex;flex-direction:column;align-items:center;gap:1.4rem;padding:1.6rem 0 .8rem}
@@ -191,6 +192,9 @@ section{display:flex;flex-direction:column;gap:.75rem}
 .msg.npc .line{display:flex;gap:.5rem;align-items:flex-start;color:var(--pri2);font-size:1.12rem;font-weight:700}
 .msg.me{align-self:flex-end;background:var(--pri);color:#fff;border-bottom-right-radius:6px;font-size:1.08rem}
 .msg.me .sub{font-size:.85rem;opacity:.9}
+.gapbox{display:inline-block;min-width:3.5em;border-bottom:3px solid var(--pri);color:var(--pri2);font-weight:700;text-align:center}
+.rule{display:flex;flex-direction:column;gap:.55rem;font-size:1.05rem}
+.rule b{color:var(--pri2)}
 .marks .hit{color:var(--ok2);font-weight:700}.marks .gap{color:var(--bad2);text-decoration:underline}
 .msg.me .marks{background:#fff;border-radius:10px;padding:.3rem .5rem;color:var(--ink)}
 .mic{width:6rem;height:6rem;border-radius:50%;border:0;background:var(--berry);color:#fff;box-shadow:0 6px 0 var(--berry2);display:inline-flex;align-items:center;justify-content:center}
@@ -218,8 +222,8 @@ section{display:flex;flex-direction:column;gap:.75rem}
 /* nav */
 #nav{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--card);border-top:2px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 body.focus #nav{display:none}
-#nav .wrap{display:grid;grid-template-columns:repeat(5,1fr);padding:0 .2rem}
-#nav a{display:flex;flex-direction:column;align-items:center;gap:.1rem;padding:.5rem .1rem .55rem;color:var(--muted);text-decoration:none;font-size:.72rem;font-weight:700}
+#nav .wrap{display:grid;grid-template-columns:repeat(6,1fr);padding:0 .1rem}
+#nav a{display:flex;flex-direction:column;align-items:center;gap:.1rem;padding:.5rem 0 .55rem;color:var(--muted);text-decoration:none;font-size:.64rem;font-weight:700}
 #nav a svg{width:1.6rem;height:1.6rem}
 #nav a[aria-current="page"]{color:var(--pri)}
 #nav a[aria-current="page"] svg{background:var(--tint);border-radius:10px;padding:.1rem;box-sizing:content-box;margin:-.1rem}
@@ -236,6 +240,7 @@ body.focus #nav{display:none}
   <a href="#start" data-tab="start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Start</a>
   <a href="#ueben" data-tab="ueben"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="11" rx="5"/><path d="M8 11v3M6.5 12.5h3M15 12h.01M17.5 13.5h.01"/></svg>Spielen</a>
   <a href="#lesen" data-tab="lesen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6c-2-1.5-5-2-8-2v14c3 0 6 .5 8 2 2-1.5 5-2 8-2V4c-3 0-6 .5-8 2zM12 6v14"/></svg>Lesen</a>
+  <a href="#grammatik" data-tab="grammatik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18l4.5-12L12 18M4.7 14h5.6"/><path d="M17.5 18v-5.5a2.5 2.5 0 0 0-5 0M17.5 14.5h-2.3a2 2 0 0 0 0 4c1.3 0 2.3-1 2.3-2.3"/></svg>Grammatik</a>
   <a href="#sprechen" data-tab="sprechen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>Sprechen</a>
   <a href="#profil" data-tab="profil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg>Profil</a>
 </div></nav>
@@ -244,15 +249,15 @@ body.focus #nav{display:none}
 <script>
 "use strict";
 /* ================= Daten ================= */
-const C=window.CONTENT||{topics:[],texts:[],dialogs:[]},T=C.topics,R=C.texts,D=C.dialogs;
-const LN=["","Einsteiger","Grundlagen","Aufbau","Fortgeschritten"],MAXLV=4,INT=[0,1,2,4,8,16];
+const C=window.CONTENT||{topics:[],texts:[],dialogs:[],grammar:[]},T=C.topics,R=C.texts,D=C.dialogs,G=C.grammar||[];
+const LN=["","Einsteiger","Grundlagen","Aufbau","Fortgeschritten","Mittelstufe","Profi"],MAXLV=6,INT=[0,1,2,4,8,16];
 const ALL=[];T.forEach((t,ti)=>t.w.forEach((_,wi)=>ALL.push(ti+"."+wi)));
 const W=id=>{const p=id.split(".");return T[+p[0]].w[+p[1]]};
 const tOf=id=>+id.split(".")[0];
 const lvOf=id=>T[tOf(id)].lv;
 const KEY="teatime.v1";
 function today(){const d=new Date();return Math.floor((d.getTime()-d.getTimezoneOffset()*60000)/86400000)}
-function def(){return{cards:{},xp:0,streak:0,best:0,last:0,days:{},goal:60,rate:.85,accent:"en-GB",sound:true,read:{},dlg:{},level:1,hist:[],badges:{},bestCombo:0,blitz:0,pairs:0,perfect:false,noInstall:false,goalDay:0,reps:0,placed:false}}
+function def(){return{cards:{},xp:0,streak:0,best:0,last:0,days:{},goal:60,rate:.85,accent:"en-GB",sound:true,read:{},dlg:{},level:1,hist:[],badges:{},bestCombo:0,blitz:0,pairs:0,perfect:false,noInstall:false,goalDay:0,reps:0,placed:false,gram:{}}}
 function load(){let s=def();try{const r=localStorage.getItem(KEY);if(r)s=Object.assign(s,JSON.parse(r))}catch(e){}
   const t=today();for(const k in s.days)if(+k<t-60)delete s.days[k];return s}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
@@ -358,24 +363,38 @@ const BADGES=[
 ["pairs","🧩","Paar-Profi","Wortpaare ohne Fehler",()=>S.perfect],
 ["l2","⭐","Stufe 2","Grundlagen erreicht",()=>S.level>=2],
 ["l4","🌟","Stufe 4","Fortgeschritten erreicht",()=>S.level>=4],
+["l6","👑","Stufe 6","Profi erreicht",()=>S.level>=6],
+["g1","🧩","Grammatik-Start","Ein Grammatik-Thema mit 3 Sternen",()=>Object.keys(S.gram).some(k=>S.gram[k]>=3)],
+["gall","📐","Grammatik-Profi","Alle Grammatik-Themen geschafft",()=>G.length>0&&G.every((_,i)=>S.gram[i]>=1)],
+["w500","📙","500 Wörter","500 Wörter gelernt",()=>ALL.filter(seen).length>=500],
 ["xp1k","💎","1000 Punkte","1000 Punkte gesammelt",()=>S.xp>=1000]];
 function checkBadges(){let n=0;BADGES.forEach(b=>{if(!S.badges[b[0]]&&b[4]()){S.badges[b[0]]=today();const d=n++*3100;setTimeout(()=>toast(`${b[1]} Neues Abzeichen: ${b[2]}`),900+d)}});if(n)save()}
 
 /* ================= Fragen ================= */
 function hiRate(){const r=rate();return r!==null&&r>=.85}
-function pickType(){const r=rate(),lo=r===null||r<.6;const t=lo?["ende","ende","deen"]:hiRate()?["deen","build","build","ende"]:["ende","deen","build"];if(canSpeak())t.push("listen");return pick(t)}
+function pickType(){const r=rate(),lo=r===null||r<.6;const t=lo?["ende","ende","deen"]:hiRate()?["deen","build","build","ende"]:["ende","deen","build"];if(canSpeak())t.push("listen");
+  if(S.level>=3)t.push("gap");if(S.level>=4)t.push("type");if(S.level>=5)t.push("gap","type","type");return pick(t)}
+const ekey=w=>w.replace(/^to /,"").replace(/[.?!]$/,"");
+const reEsc=x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+const norm=x=>x.toLowerCase().replace(/[’`]/g,"'").replace(/[^a-z' ]/g," ").replace(/\s+/g," ").trim();
+function lev(a,b){const m=a.length,n=b.length;if(Math.abs(m-n)>1)return 2;const d=Array.from({length:m+1},(_,i)=>[i]);for(let j=1;j<=n;j++)d[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[m][n]}
+function typeOk(target,v){const t=norm(target),x=norm(v);if(!x)return 0;const vars=[t,t.replace(/^to /,""),t.replace(/^(the|a|an) /,"")];
+  if(vars.indexOf(x)>=0)return 2;return vars.some(y=>y.length>=5&&lev(y,x)<=1)?1:0}
 function mk(id,type){const w=W(id);
   if(type==="build"){const tk=w[2].split(" ");if(tk.length>=3&&tk.length<=(hiRate()?9:7)){let bank;do{bank=shuffle(tk.map((t,i)=>({t,i})))}while(bank.every((b,k)=>b.i===k));return{id,type,bank,picked:[],state:null}}type="ende"}
+  if(type==="type")return{id,type,val:"",state:null};
+  let gapS=null;if(type==="gap"){const re=new RegExp("\\b"+reEsc(ekey(w[0]))+"\\b","i");if(re.test(w[2]))gapS=w[2].replace(re,"<span class=\"gapbox\">?</span>");else type="deen"}
   if(type==="listen"&&!canSpeak())type="deen";
   const f=type==="ende"?1:0,ti=tOf(id),same=shuffle(T[ti].w.map((_,i)=>ti+"."+i)),rest=shuffle(ALL.filter(x=>lvOf(x)<=S.level+1)),opts=[id];
   for(const o of same.concat(rest)){if(opts.length>=4)break;if(o!==id&&!opts.some(x=>W(x)[f].toLowerCase()===W(o)[f].toLowerCase()))opts.push(o)}
-  return{id,type,opts:shuffle(opts),chosen:null,state:null}}
+  return{id,type,opts:shuffle(opts),chosen:null,state:null,gapS}}
 function newSes(kind,title,q,extra){stopTimer();hush();ui.act=Object.assign({type:"ses",kind,title,q,pos:0,xp:0,right:0,total:0,combo:0,maxc:0,end:false},extra||{});go();sayItem()}
 function startLesson(ti){const s=tStat(ti),fresh=s.ids.filter(id=>!seen(id)).slice(0,newCount());let q=[];
   if(!fresh.length){q=shuffle(s.ids).slice(0,10).map(id=>mk(id,pickType()));newSes("review",T[ti].t,q,{ti});return}
-  for(let i=0;i<fresh.length;i+=3){const c=fresh.slice(i,i+3);c.forEach(id=>q.push({id,type:"intro"}));shuffle(c).forEach(id=>q.push(mk(id,"ende")));shuffle(c).forEach(id=>q.push(mk(id,canSpeak()&&Math.random()<.4?"listen":"deen")))}
+  for(let i=0;i<fresh.length;i+=3){const c=fresh.slice(i,i+3);c.forEach(id=>q.push({id,type:"intro"}));shuffle(c).forEach(id=>q.push(mk(id,"ende")));const lv=T[ti].lv;shuffle(c).forEach(id=>q.push(mk(id,lv>=5?pick(["type","gap"]):lv>=3?pick(["gap","deen"]):canSpeak()&&Math.random()<.4?"listen":"deen")))}
   newSes("lesson",T[ti].t,q,{ti})}
-function placeQs(lv){const ty=["ende","deen","ende","deen","build"];return shuffle(ALL.filter(id=>lvOf(id)===lv)).slice(0,5).map((id,k)=>mk(id,ty[k]))}
+function placeQs(lv){const ty=lv>=3?["gap","deen","type","ende","build"]:["ende","deen","ende","deen","build"];return shuffle(ALL.filter(id=>lvOf(id)===lv)).slice(0,5).map((id,k)=>mk(id,ty[k]))}
 function startPlace(){newSes("place","Einstufungstest",placeQs(1),{lv:1,lvRight:0,passed:0,wrong:[]})}
 function placeMore(a){if(a.lvRight>=4){a.passed=a.lv;if(a.lv<MAXLV){a.lv++;a.lvRight=0;a.q=a.q.concat(placeQs(a.lv));return true}}return false}
 function finishPlace(a){a.end=true;hush();const res=Math.min(MAXLV,a.passed+1),t=today();
@@ -405,12 +424,12 @@ function finishSes(a){a.end=true;stopTimer();hush();if(a.kind==="blitz"&&a.score
   const acc=a.total?a.right/a.total:1;if((a.kind!=="blitz"&&acc>=.8)||a.record){confetti();beep("win")}render()}
 
 /* ================= Ansichten ================= */
-function route(){const h=location.hash.replace("#","");return["start","ueben","lesen","sprechen","profil"].indexOf(h)>=0?h:"start"}
+function route(){const h=location.hash.replace("#","");return["start","ueben","lesen","grammatik","sprechen","profil"].indexOf(h)>=0?h:"start"}
 function go(){render();window.scrollTo(0,0)}
 function render(){const app=document.getElementById("app"),a=ui.act;document.body.classList.toggle("focus",!!a);
-  if(a){app.innerHTML=`<main class="wrap act">${a.type==="ses"?vSes(a):a.type==="pairs"?vPairs(a):a.type==="text"?vText(a):a.type==="dlg"?vDlg(a):vRep(a)}</main>`;return}
+  if(a){app.innerHTML=`<main class="wrap act">${a.type==="ses"?vSes(a):a.type==="pairs"?vPairs(a):a.type==="text"?vText(a):a.type==="dlg"?vDlg(a):a.type==="gram"?vGram(a):vRep(a)}</main>`;return}
   const r=route();document.querySelectorAll("#nav a").forEach(x=>{if(x.dataset.tab===r)x.setAttribute("aria-current","page");else x.removeAttribute("aria-current")});
-  app.innerHTML=topbar()+`<main class="wrap">${r==="ueben"?vPlay():r==="lesen"?vRead():r==="sprechen"?vTalk():r==="profil"?vProfile():vStart()}</main>`}
+  app.innerHTML=topbar()+`<main class="wrap">${r==="ueben"?vPlay():r==="lesen"?vRead():r==="grammatik"?vGramList():r==="sprechen"?vTalk():r==="profil"?vProfile():vStart()}</main>`}
 function topbar(){return `<header class="top"><div class="wrap"><div class="logo">${tilly("happy",36)}Teatime</div>
   <div class="chips"><span class="chip fire" aria-label="${streakNow()} Tage in Folge">🔥 ${streakNow()}</span><span class="chip star" aria-label="${S.xp} Punkte">⭐ ${S.xp}</span></div></div></header>`}
 const isIOS=()=>/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
@@ -476,7 +495,7 @@ function vProfile(){const r=rate(),learned=ALL.filter(seen).length,solid=ALL.fil
    <div class="setting"><span>Sprechtempo</span>${seg("rate",[[.7,"Langsam"],[.85,"Mittel"],[1,"Normal"]])}</div>
    <div class="setting"><span>Tagesziel</span>${seg("goal",[[30,"30 ⭐"],[60,"60 ⭐"],[100,"100 ⭐"]])}</div>
    <div class="setting"><span>Töne</span>${seg("sound",[["true","An"],["false","Aus"]])}</div>
-   <div class="setting"><span>Stufe selbst wählen</span>${seg("level",[[1,"1"],[2,"2"],[3,"3"],[4,"4"]])}</div>
+   <div class="setting"><span>Stufe selbst wählen</span>${seg("level",[[1,"1"],[2,"2"],[3,"3"],[4,"4"],[5,"5"],[6,"6"]])}</div>
    <div class="setting"><span>Vorlesen testen</span><button class="btn" data-a="say" data-s="Hello! This is a test.">🔊 Test</button></div>
    <p class="small muted">Kein Ton? Prüfe den Lautlos-Schalter an der Seite des iPhones und die Lautstärke.</p>
    <p class="small muted">Dein Fortschritt bleibt auf diesem Handy gespeichert. Wenn du die App löschst, ist er weg.</p>
@@ -496,7 +515,7 @@ function vSes(a){
   const it=a.q[a.pos],w=W(it.id),fin=it.state!==null&&it.state!==undefined,blitz=a.kind==="blitz";
   let h=`<div class="actbar"><button class="x" data-a="exit" aria-label="Beenden">✕</button>`;
   h+=blitz?`<div class="bar sun"><i id="tbar" style="width:${Math.max(0,a.deadline-Date.now())/600}%"></i></div><span class="chip" id="tleft">${Math.ceil(Math.max(0,a.deadline-Date.now())/1000)} s</span><span class="chip star">⚡ ${a.score}</span>`
-    :a.kind==="place"?`<div class="bar"><i style="width:${Math.min(100,a.pos/20*100)}%"></i></div><span class="chip">Stufe ${a.lv}</span>`
+    :a.kind==="place"?`<div class="bar"><i style="width:${Math.min(100,a.pos/30*100)}%"></i></div><span class="chip">Stufe ${a.lv}</span>`
     :`<div class="bar"><i style="width:${a.pos/a.q.length*100}%"></i></div>${a.combo>=3?`<span class="combo">🔥 ${a.combo}</span>`:""}`;
   h+=`</div>`;
   if(it.type==="intro")return h+`<p class="prompt">Neues Wort</p><div class="qcard"><div class="row"><span class="word">${esc(w[0])}</span>${spk(w[0])}</div><span class="de">${esc(w[1])}</span><div class="hr"></div>
@@ -506,21 +525,45 @@ function vSes(a){
     <div class="toks ans">${it.picked.map((b,k)=>`<button class="tok" data-a="untok" data-k="${k}"${fin?" disabled":""}>${esc(it.bank[b].t)}</button>`).join("")||'<span class="muted small">Tippe die Wörter in der richtigen Reihenfolge an.</span>'}</div>
     <div class="toks">${it.bank.map((b,k)=>`<button class="tok${it.picked.indexOf(k)>=0?" used":""}" data-a="tok" data-k="${k}"${fin?" disabled":""}>${esc(b.t)}</button>`).join("")}</div>`;
     if(!fin)h+=`<div class="foot"><div class="wrap"><button class="btn pri block" data-a="check"${it.picked.length===it.bank.length?"":" disabled style=\"opacity:.5\""}>Prüfen</button></div></div>`}
-  else{const f=it.type==="ende"?1:0;
+  else if(it.type==="type"){h+=`<p class="prompt">Schreib es auf Englisch</p><div class="qcard center"><span class="word" style="color:var(--ink)">${esc(w[1])}</span></div>
+    <div class="say"><input id="typ" type="text" lang="en" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Englisches Wort" value="${esc(it.val)}" aria-label="Deine Antwort"${fin?" disabled":""}></div>`;
+    if(!fin)h+=`<div class="foot"><div class="wrap"><button class="btn pri block" data-a="tcheck">Prüfen</button></div></div>`}
+  else{const f=it.type==="ende"?1:0,lab=o=>it.type==="gap"?ekey(W(o)[0]):W(o)[f];
     h+=it.type==="ende"?`<p class="prompt">Was heißt das auf Deutsch?</p><div class="qcard center"><div class="row"><span class="word">${esc(w[0])}</span>${spk(w[0])}</div></div>`
       :it.type==="deen"?`<p class="prompt">Wie heißt das auf Englisch?</p><div class="qcard center"><span class="word" style="color:var(--ink)">${esc(w[1])}</span></div>`
+      :it.type==="gap"?`<p class="prompt">Welches Wort fehlt?</p><div class="qcard"><span style="font-size:1.25rem;color:var(--pri2);font-weight:700">${fin?esc(w[2]):it.gapS}</span><span class="muted">${esc(w[3])}</span></div>`
       :`<p class="prompt">Was hörst du?</p><div class="qcard center"><button class="spk huge" data-a="say" data-s="${esc(w[0])}" aria-label="Noch einmal anhören">${SPK}</button><span class="small muted">Tippen zum Anhören</span></div>`;
     h+=`<div class="opts">${it.opts.map((o,k)=>{const r=fin&&o===it.id,x=fin&&it.chosen===k&&o!==it.id;
-      return `<button class="opt${f===0?" en":""}${r?" right":x?" wrong shake":""}" data-a="opt" data-k="${k}"${fin?" disabled":""}><span>${esc(W(o)[f])}</span><span>${r?"✓":x?"✗":""}</span></button>`}).join("")}</div>`}
+      return `<button class="opt${f===0?" en":""}${r?" right":x?" wrong shake":""}" data-a="opt" data-k="${k}"${fin?" disabled":""}><span>${esc(lab(o))}</span><span>${r?"✓":x?"✗":""}</span></button>`}).join("")}</div>`}
   if(a.kind==="place"&&!fin)h+=`<div class="center" style="display:flex;justify-content:center"><button class="btn link" data-a="idk">Weiß ich nicht</button></div>`;
   if(fin&&!blitz){const ok=it.state==="ok",en=it.type==="build"?w[2]:w[0],de=it.type==="build"?w[3]:w[1];
-    h+=`<div class="foot ${ok?"ok":"no"}"><div class="wrap"><div class="row between"><span class="verdict">${ok?pick(["Richtig!","Super!","Klasse!","Genau!"]):"Nicht ganz."}</span>${ok&&a.kind!=="place"?`<span class="chip star">+${a.combo>=5?15:10} ⭐</span>`:""}</div>
-      ${ok?"":`<div class="row"><span class="grow"><strong class="en">${esc(en)}</strong><br>${esc(de)}</span>${spk(en)}</div>`}
+    h+=`<div class="foot ${ok?"ok":"no"}"><div class="wrap"><div class="row between"><span class="verdict">${ok?(it.typo?"Richtig! Kleiner Tippfehler.":pick(["Richtig!","Super!","Klasse!","Genau!"])):"Nicht ganz."}</span>${ok&&a.kind!=="place"?`<span class="chip star">+${a.combo>=5?15:10} ⭐</span>`:""}</div>
+      ${ok&&!it.typo?"":`<div class="row"><span class="grow"><strong class="en">${esc(en)}</strong><br>${esc(de)}</span>${spk(en)}</div>`}
       <button class="btn ${ok?"ok":"bad"} block" data-a="next">Weiter</button></div></div>`}
   return h}
 function endv(mood,title,sub,tiles,btns){return `<div class="endv">${tilly(mood,130)}<h2>${title}</h2><p class="muted">${sub}</p>
   <div class="stats">${tiles.map(t=>`<div><strong>${t[0]}</strong><span>${t[1]}</span></div>`).join("")}</div><div style="display:flex;flex-direction:column;gap:.7rem;width:100%">${btns}</div></div>`}
 
+/* ---- Grammatik ---- */
+function vGramList(){let h=`<section><h2>Grammatik</h2><p class="muted">Kurze Erklärung auf Deutsch, danach 8 Übungen. Bis zu 3 Sterne pro Thema.</p><div class="list">`,last=0;
+  G.forEach((g,i)=>{if(g.lv!==last){last=g.lv;h+=`<div class="subhead">Stufe ${g.lv} · ${LN[g.lv]}</div>`}const lock=g.lv>S.level,st=S.gram[i]||0;
+    h+=`<button class="item" data-a="gram" data-i="${i}"${lock?" disabled":""}><span class="em">${lock?"🔒":g.ic}</span><span class="grow"><strong>${esc(g.t)}</strong><br><span class="stars">${"<i>★</i>".repeat(st)}${"★".repeat(3-st)}</span></span></button>`});
+  return h+`</div></section>`}
+function startGram(i){hush();ui.act={type:"gram",i,intro:true,pos:0,right:0,xp:0,end:false,q:shuffle(G[i].q).map(q=>({s:q[0],ok:q[1],opts:shuffle([q[1],q[2],q[3]]),de:q[4],chosen:null,state:null}))};go()}
+function vGram(a){const g=G[a.i];
+  if(a.intro)return `<div class="actbar"><button class="x" data-a="exit" aria-label="Schließen">✕</button><h2 class="grow">${g.ic} ${esc(g.t)}</h2></div>
+    <div class="card rule">${g.ex.map(x=>`<p>${x}</p>`).join("")}</div><h3>Beispiele</h3><div class="list">${g.eg.map(e=>`<div class="card row" style="padding:.8rem 1rem"><span class="grow"><strong class="en">${esc(e[0])}</strong><br>${esc(e[1])}</span>${spk(e[0])}</div>`).join("")}</div>
+    <div class="foot"><div class="wrap"><button class="btn pri block" data-a="gstart">${a.back?"Weiter üben":"Übungen starten"}</button></div></div>`;
+  if(a.end){const n=a.q.length,st=a.right>=n-1?3:a.right>=n-2?2:a.right>=n/2?1:0;
+    return endv(st>=2?"wow":"happy",st===3?"Grammatik gemeistert!":st?"Gut gemacht!":"Übung macht den Meister",`${a.right} von ${n} richtig`,[["+"+a.xp,"Punkte"],["★".repeat(st)||"–","Sterne"],[a.right+"/"+n,"richtig"]],
+      `${st<3?`<button class="btn pri block" data-a="gram" data-i="${a.i}">Noch einmal</button>`:""}<button class="btn${st<3?"":" pri"} block" data-a="exit">Fertig</button>`)}
+  const it=a.q[a.pos],fin=it.state!==null,full=it.s.replace("___",it.ok);
+  let h=`<div class="actbar"><button class="x" data-a="exit" aria-label="Beenden">✕</button><div class="bar"><i style="width:${a.pos/a.q.length*100}%"></i></div><button class="chip" data-a="gintro">? Regel</button></div>
+    <p class="prompt">Was passt in die Lücke?</p><div class="qcard"><span style="font-size:1.3rem;color:var(--pri2);font-weight:700">${fin?esc(full):esc(it.s).replace("___",'<span class="gapbox">?</span>')}</span><span class="muted">${esc(it.de)}</span></div>
+    <div class="opts">${it.opts.map((o,k)=>{const r=fin&&o===it.ok,x=fin&&it.chosen===k&&o!==it.ok;return `<button class="opt en${r?" right":x?" wrong shake":""}" data-a="gopt" data-k="${k}"${fin?" disabled":""}><span>${esc(o)}</span><span>${r?"✓":x?"✗":""}</span></button>`}).join("")}</div>`;
+  if(fin){const ok=it.state==="ok";h+=`<div class="foot ${ok?"ok":"no"}"><div class="wrap"><div class="row between"><span class="verdict">${ok?pick(["Richtig!","Genau!","Super!"]):"Nicht ganz."}</span>${ok?'<span class="chip star">+10 ⭐</span>':""}</div>
+    <div class="row"><span class="grow"><strong class="en">${esc(full)}</strong></span>${spk(full)}</div><button class="btn ${ok?"ok":"bad"} block" data-a="gnext">Weiter</button></div></div>`}
+  return h}
 /* ---- Wortpaare ---- */
 function startPairs(){stopTimer();hush();ui.act={type:"pairs",round:1,rounds:3,used:[],sel:{},done:[],bad:null,mist:0,t0:Date.now(),end:false};newRound(ui.act);go();ui.timer=setInterval(tickTimer,500)}
 function newRound(a){const p=shuffle(learnedPool(15).filter(id=>a.used.indexOf(id)<0)),ids=[];
@@ -573,6 +616,7 @@ function vRep(a){const w=W(a.id),r=a.res;
   return h}
 
 function dres(a,m,res){m.marks=res.marks;m.score=res.score;if(res.score>=.8){beep("ok");if(!m.bonus){m.bonus=true;S.reps++;a.xp+=5;gain(5)}}else beep("bad");render()}
+function finishGram(a){a.end=true;hush();const n=a.q.length,st=a.right>=n-1?3:a.right>=n-2?2:a.right>=n/2?1:0;if(st>(S.gram[a.i]||0))S.gram[a.i]=st;a.xp+=st*5;gain(st*5);save();checkBadges();if(st>=2){confetti();beep("win")}render()}
 /* ================= Aktionen ================= */
 const ACT={
   say(d){speak(d.s)},
@@ -583,6 +627,12 @@ const ACT={
   exit(){hush();stopTimer();ui.act=null;go()},
   next(){const a=ui.act;a.pos++;if(a.pos>=a.q.length&&!(a.kind==="place"&&placeMore(a))){if(a.kind==="place")finishPlace(a);else finishSes(a);return}render();window.scrollTo(0,0);sayItem()},
   place(){startPlace()},
+  gram(d){startGram(+d.i)},
+  gstart(){ui.act.intro=false;go()},
+  gintro(){ui.act.intro=true;ui.act.back=true;go()},
+  gopt(d){const a=ui.act,it=a.q[a.pos];if(it.state!==null)return;it.chosen=+d.k;const ok=it.opts[it.chosen]===it.ok;it.state=ok?"ok":"no";record(ok);beep(ok?"ok":"bad");if(ok){a.right++;a.xp+=10;gain(10)}render();if(ok)speak(it.s.replace("___",it.ok))},
+  gnext(){const a=ui.act;a.pos++;if(a.pos>=a.q.length)finishGram(a);else{render();window.scrollTo(0,0)}},
+  tcheck(){const a=ui.act,it=a.q[a.pos];if(it.state!==null)return;const b=document.getElementById("typ"),v=((b&&b.value)||it.val||"").trim();if(!v)return;it.val=v;const r=typeOk(W(it.id)[0],v);it.typo=r===1;resolve(it,r>0)},
   noPlace(){S.placed=true;save();render()},
   idk(){const a=ui.act,it=a.q[a.pos];if(it.state!==null)return;resolve(it,false)},
   opt(d){const a=ui.act,it=a.q[a.pos];if(it.state!==null)return;it.chosen=+d.k;resolve(it,it.opts[it.chosen]===it.id)},
@@ -617,8 +667,9 @@ const ACT={
   resetYes(){S=def();save();ui.resetAsk=false;ui.act=null;go()}
 };
 document.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(!b||b.disabled)return;const f=ACT[b.dataset.a];if(f){e.preventDefault();f(b.dataset)}});
-document.addEventListener("input",e=>{if(e.target.id==="say"&&ui.act)ui.act.draft=e.target.value});
-document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="say"){e.preventDefault();if(ui.act&&ui.act.type==="dlg")ACT.dcheck();else ACT.rcheck()}});
+document.addEventListener("input",e=>{if(!ui.act)return;if(e.target.id==="say")ui.act.draft=e.target.value;else if(e.target.id==="typ"&&ui.act.q)ui.act.q[ui.act.pos].val=e.target.value});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="typ"){e.preventDefault();ACT.tcheck()}
+  if(e.key==="Enter"&&e.target.id==="say"){e.preventDefault();if(ui.act&&ui.act.type==="dlg")ACT.dcheck();else ACT.rcheck()}});
 window.addEventListener("hashchange",()=>{if(!ui.act)go()});
 if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)&&!inFrame())navigator.serviceWorker.register("sw.js").catch(()=>{});
 render();
