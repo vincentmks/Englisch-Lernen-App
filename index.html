@@ -12,9 +12,6 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 /* Layout idea: a teatime game board. A winding path of topic stops, chunky
    pressable buttons, a teacup mascot; English is always teal. */
@@ -23,8 +20,8 @@
   --pri:#0f8b8d;--pri2:#0a6466;--tint:#dcf2f1;
   --berry:#e0457b;--berry2:#b02e5d;--sun:#ffc93c;--sun2:#d39a12;--sky:#2f6fd6;--sky2:#1f50a3;--plum:#7a4fd6;--plum2:#5a35a8;
   --ok:#1e9b57;--ok2:#147a42;--okbg:#e0f5e8;--bad:#d64545;--bad2:#a83232;--badbg:#fde7e7;
-  --display:"Fredoka","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;
-  --body:"Atkinson Hyperlegible",Verdana,system-ui,sans-serif;
+  --display:ui-rounded,"SF Pro Rounded","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;
+  --body:-apple-system,system-ui,"Segoe UI",Roboto,Verdana,sans-serif;
   color-scheme:light;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -283,16 +280,23 @@ if(synth){loadVoices();try{synth.addEventListener("voiceschanged",loadVoices)}ca
 const canSpeak=()=>!!synth;
 function voice(){const n=v=>(v.lang||"").replace("_","-");const m=voices.filter(v=>n(v)===S.accent);
   return m.find(v=>/premium|enhanced|natural/i.test(v.name))||m[0]||voices.find(v=>n(v).indexOf("en")===0)||null}
+let curU=null,unlockedTTS=false;
 function speak(text,done){const end=()=>{if(done)done()};if(!synth){end();return}
-  try{synth.cancel();const u=new SpeechSynthesisUtterance(text);const v=voice();if(v)u.voice=v;u.lang=v?v.lang:S.accent;u.rate=S.rate;u.onend=end;u.onerror=end;synth.speak(u)}catch(e){end()}}
-function hush(){try{if(synth)synth.cancel()}catch(e){}if(ui.rec){try{ui.rec.abort()}catch(e){}ui.rec=null;ui.listening=false}}
+  try{if(!voices.length)loadVoices();const u=new SpeechSynthesisUtterance(text);const v=voice();if(v)u.voice=v;u.lang=v?v.lang:S.accent;u.rate=S.rate;u.volume=1;
+    let fin=false;const f=()=>{if(fin)return;fin=true;if(curU===u)curU=null;end()};u.onend=f;u.onerror=f;curU=u;
+    if(synth.speaking||synth.pending){synth.cancel();setTimeout(()=>{if(curU===u)synth.speak(u)},120)}else synth.speak(u);
+    if(synth.paused)synth.resume()}catch(e){end()}}
+function unlockTTS(){if(unlockedTTS||!synth)return;unlockedTTS=true;loadVoices();try{const u=new SpeechSynthesisUtterance(" ");u.volume=0;synth.speak(u)}catch(e){}}
+document.addEventListener("touchend",unlockTTS,{passive:true});document.addEventListener("click",unlockTTS,true);
+function hush(){curU=null;try{if(synth)synth.cancel()}catch(e){}if(ui.rec){try{ui.rec.abort()}catch(e){}ui.rec=null;ui.listening=false}}
 const SPK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
 const MIC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
 const spk=t=>canSpeak()?`<button class="spk" data-a="say" data-s="${esc(t)}" aria-label="Vorlesen">${SPK}</button>`:"";
 
 /* Spracherkennung (im Browser eingebaut) */
 const SRC=window.SpeechRecognition||window.webkitSpeechRecognition;
-const hasSR=()=>!!SRC&&!ui.srOff;
+const hasSR=()=>!!SRC&&!ui.srOff&&!(isIOS()&&standalone());
+const KBTIP=`<p class="small muted">Tipp: Damit das iPhone dein Englisch richtig aufschreibt, unter Einstellungen → Allgemein → Tastatur → Tastaturen eine <b>englische Tastatur</b> hinzufügen. Beim Sprechen dann mit der 🌐-Taste auf Englisch wechseln und auf das Mikrofon der Tastatur tippen.</p>`;
 const NUM={"0":"zero","1":"one","2":"two","3":"three","4":"four","5":"five","6":"six","7":"seven","8":"eight","9":"nine","10":"ten","11":"eleven","12":"twelve","20":"twenty","40":"forty","50":"fifty"};
 const CONTR={"it's":"it is","i'm":"i am","don't":"do not","isn't":"is not","can't":"cannot","i'll":"i will","that's":"that is","what's":"what is","let's":"let us","you're":"you are","we're":"we are","they're":"they are","doesn't":"does not","didn't":"did not","i've":"i have","won't":"will not","there's":"there is","where's":"where is","i'd":"i would","he's":"he is","she's":"she is","aren't":"are not","wasn't":"was not"};
 function words(x){return x.toLowerCase().replace(/[’`]/g,"'").replace(/[^a-z0-9' ]/g," ").split(/\s+/).filter(Boolean).map(w=>CONTR[w]||NUM[w]||w).join(" ").split(" ").filter(Boolean)}
@@ -413,7 +417,7 @@ function vStart(){const t=today(),done=S.days[t]||0,pct=Math.min(1,done/S.goal),
   let html="";
   if(isIOS()&&!standalone()&&!inFrame()&&!S.noInstall)html+=`<div class="banner"><span style="font-size:1.8rem">📲</span><div class="grow"><strong>Als App installieren</strong><p class="small">Unten in Safari auf <b>Teilen</b> tippen, dann <b>„Zum Home-Bildschirm“</b>.</p><button class="btn link" data-a="noInstall">Ausblenden</button></div></div>`;
   html+=`<div class="hello">${tilly("happy",84)}<div class="bubble"><span class="tag">${greet[0]} · Satz des Tages</span><div class="row"><span class="big grow">${esc(ph[2])}</span>${spk(ph[2])}</div><span>${esc(ph[3])}</span></div></div>
-  <div class="card goal"><svg class="ring" width="76" height="76" viewBox="0 0 76 76" role="img" aria-label="${Math.round(pct*100)} Prozent vom Tagesziel"><circle class="bg" cx="38" cy="38" r="30"/><circle class="fg" cx="38" cy="38" r="30" stroke-dasharray="${C2}" stroke-dashoffset="${C2*(1-pct)}" transform="rotate(-90 38 38)"/><text x="38" y="44" text-anchor="middle" font-size="18" font-family="Fredoka,sans-serif" font-weight="600" fill="#1b2545">${pct>=1?"✓":Math.round(pct*100)+"%"}</text></svg>
+  <div class="card goal"><svg class="ring" width="76" height="76" viewBox="0 0 76 76" role="img" aria-label="${Math.round(pct*100)} Prozent vom Tagesziel"><circle class="bg" cx="38" cy="38" r="30"/><circle class="fg" cx="38" cy="38" r="30" stroke-dasharray="${C2}" stroke-dashoffset="${C2*(1-pct)}" transform="rotate(-90 38 38)"/><text x="38" y="44" text-anchor="middle" font-size="18" font-family="ui-rounded,sans-serif" font-weight="600" fill="#1b2545">${pct>=1?"✓":Math.round(pct*100)+"%"}</text></svg>
     <div class="grow" style="display:flex;flex-direction:column;gap:.45rem"><div class="row between"><h3>Tagesziel</h3><span class="small muted">${Math.min(done,S.goal)} / ${S.goal} ⭐</span></div><div class="week">${week}</div></div></div>`;
   if(due)html+=`<button class="btn berry block" data-a="review">🔁 ${due===1?"1 Wort":due+" Wörter"} wiederholen</button>`;
   const cur=curTopic();let n=0,path="";const X=[0,58,86,58,0,-58,-86,-58];
@@ -462,6 +466,8 @@ function vProfile(){const r=rate(),learned=ALL.filter(seen).length,solid=ALL.fil
    <div class="setting"><span>Tagesziel</span>${seg("goal",[[30,"30 ⭐"],[60,"60 ⭐"],[100,"100 ⭐"]])}</div>
    <div class="setting"><span>Töne</span>${seg("sound",[["true","An"],["false","Aus"]])}</div>
    <div class="setting"><span>Stufe selbst wählen</span>${seg("level",[[1,"1"],[2,"2"],[3,"3"],[4,"4"]])}</div>
+   <div class="setting"><span>Vorlesen testen</span><button class="btn" data-a="say" data-s="Hello! This is a test.">🔊 Test</button></div>
+   <p class="small muted">Kein Ton? Prüfe den Lautlos-Schalter an der Seite des iPhones und die Lautstärke.</p>
    <p class="small muted">Dein Fortschritt bleibt auf diesem Handy gespeichert. Wenn du die App löschst, ist er weg.</p>
    ${ui.resetAsk?`<div class="setting"><span>Wirklich alles löschen?</span><span class="row"><button class="btn bad" data-a="resetYes">Löschen</button><button class="btn" data-a="resetNo">Nein</button></span></div>`:`<div><button class="btn link" data-a="resetAsk">Fortschritt löschen</button></div>`}
   </div></section>`}
@@ -534,7 +540,7 @@ function vDlg(a){const d=D[a.i];
   h+=`</div>`;
   if(!a.answered)h+=`<p class="prompt" style="font-size:1.15rem">Was antwortest du?</p><div class="opts">${a.opts.map((o,k)=>{const no=a.wrong.indexOf(k)>=0;return `<button class="opt en${no?" wrong shake":""}" data-a="dopt" data-k="${k}"${no?" disabled":""}><span>${esc(o.en)}</span><span>${no?"✗":""}</span></button>`}).join("")}</div>${a.wrong.length?`<p class="small muted">Das passt hier nicht. Lies die Frage noch einmal oder zeig die Übersetzung an.</p>`:""}`;
   else h+=`<div class="foot ok"><div class="wrap"><div class="row between"><span class="verdict">${a.wrong.length?"Richtig!":"Super, auf Anhieb!"}</span><span class="chip star">+${a.wrong.length?5:10} ⭐</span></div>
-    ${hasSR()?`<div class="btns"><button class="btn${ui.listening?" berry":""}" data-a="dsay">${ui.listening?"🎙️ Ich höre …":"🎤 Laut sagen"}</button><button class="btn ok" data-a="dnext">Weiter</button></div>`:`<p class="small">Sprich den Satz einmal laut nach, dann geht es weiter.</p><button class="btn ok block" data-a="dnext">Weiter</button>`}</div></div>`;
+    ${hasSR()?`<div class="btns"><button class="btn${ui.listening?" berry":""}" data-a="dsay">${ui.listening?"🎙️ Ich höre …":"🎤 Laut sagen"}</button><button class="btn ok" data-a="dnext">Weiter</button></div>`:`${a.log[a.log.length-1].marks?"":`<p class="small">Sag den Satz laut über die Mikrofon-Taste der Tastatur (freiwillig):</p><div class="say"><input id="say" type="text" lang="en" autocomplete="off" autocapitalize="off" placeholder="Hier erscheint dein Satz" value="${esc(a.draft||"")}" aria-label="Dein Satz"><button class="btn" data-a="dcheck">Prüfen</button></div>`}<button class="btn ok block" data-a="dnext">Weiter</button>`}</div></div>`;
   return h}
 
 /* ---- Nachsprechen ---- */
@@ -547,9 +553,10 @@ function vRep(a){const w=W(a.id),r=a.res;
     <p class="marks" style="font-size:1.15rem">${r.marks.map(m=>`<span class="${m[1]?"hit":"gap"}">${esc(m[0])}</span>`).join(" ")}</p><p class="small muted">Verstanden wurde: „${esc(r.heard)}“</p></div>
     <div class="btns"><button class="btn" data-a="repAgain">Nochmal</button><button class="btn pri" data-a="rep">Nächster Satz</button></div>`;
   else{if(hasSR())h+=`<div class="center" style="display:flex;flex-direction:column;gap:.5rem;padding:.6rem 0"><button class="mic${ui.listening?" on":""}" data-a="rmic" aria-label="Mikrofon">${MIC}</button><span class="muted">${ui.listening?"Ich höre zu …":"Tippen und sprechen"}</span></div>`;
-    h+=`<p class="small muted">${hasSR()?"Oder":"Tippe ins Feld und nutze"} die Mikrofon-Taste deiner Tastatur:</p><div class="say"><input id="say" type="text" lang="en" autocomplete="off" autocapitalize="off" placeholder="Hier erscheint dein Satz" value="${esc(a.draft)}" aria-label="Dein Satz"><button class="btn pri" data-a="rcheck">Prüfen</button></div>`}
+    h+=`<p class="small muted">${hasSR()?"Oder":"Tippe ins Feld und nutze"} die Mikrofon-Taste deiner Tastatur:</p><div class="say"><input id="say" type="text" lang="en" autocomplete="off" autocapitalize="off" placeholder="Hier erscheint dein Satz" value="${esc(a.draft)}" aria-label="Dein Satz"><button class="btn pri" data-a="rcheck">Prüfen</button></div>${hasSR()?"":KBTIP}`}
   return h}
 
+function dres(a,m,res){m.marks=res.marks;m.score=res.score;if(res.score>=.8){beep("ok");if(!m.bonus){m.bonus=true;S.reps++;a.xp+=5;gain(5)}}else beep("bad");render()}
 /* ================= Aktionen ================= */
 const ACT={
   say(d){speak(d.s)},
@@ -579,8 +586,9 @@ const ACT={
     if(o.ok){a.answered=true;a.log.push({who:"me",en:o.en,de:o.de});const first=!a.wrong.length;if(first){a.first++;record(true)}const xp=first?10:5;a.xp+=xp;gain(xp);beep("ok");render();window.scrollTo(0,document.body.scrollHeight);speak(o.en)}
     else{a.wrong.push(+d.k);if(a.wrong.length===1)record(false);beep("bad");render()}},
   dsay(){const a=ui.act,m=a.log[a.log.length-1];if(ui.listening){hush();render();return}
-    listen(m.en,res=>{if(!res){render();return}m.marks=res.marks;m.score=res.score;if(res.score>=.8){beep("ok");if(!m.bonus){m.bonus=true;a.xp+=5;gain(5)}}else beep("bad");render()})},
-  dnext(){const a=ui.act;hush();a.step++;if(a.step>=D[a.i].st.length){a.end=true;S.dlg[a.i]=true;a.xp+=20;gain(20);save();checkBadges();confetti();beep("win");go()}else{setStep(a);render();window.scrollTo(0,document.body.scrollHeight)}},
+    listen(m.en,res=>{if(!res){render();return}dres(a,m,res)})},
+  dcheck(){const a=ui.act,m=a.log[a.log.length-1],b=document.getElementById("say"),v=((b&&b.value)||a.draft||"").trim();if(!v)return;a.draft="";dres(a,m,compare(m.en,v))},
+  dnext(){const a=ui.act;hush();a.draft="";a.step++;if(a.step>=D[a.i].st.length){a.end=true;S.dlg[a.i]=true;a.xp+=20;gain(20);save();checkBadges();confetti();beep("win");go()}else{setStep(a);render();window.scrollTo(0,document.body.scrollHeight)}},
   rmic(){const a=ui.act;if(ui.listening){hush();render();return}listen(W(a.id)[2],res=>{if(res)repResult(a,res);else render()})},
   rcheck(){const a=ui.act,b=document.getElementById("say"),v=((b&&b.value)||a.draft).trim();if(!v)return;a.draft="";repResult(a,compare(W(a.id)[2],v))},
   repAgain(){const a=ui.act;a.res=null;render();speak(W(a.id)[2])},
@@ -591,7 +599,7 @@ const ACT={
 };
 document.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(!b||b.disabled)return;const f=ACT[b.dataset.a];if(f){e.preventDefault();f(b.dataset)}});
 document.addEventListener("input",e=>{if(e.target.id==="say"&&ui.act)ui.act.draft=e.target.value});
-document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="say"){e.preventDefault();ACT.rcheck()}});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="say"){e.preventDefault();if(ui.act&&ui.act.type==="dlg")ACT.dcheck();else ACT.rcheck()}});
 window.addEventListener("hashchange",()=>{if(!ui.act)go()});
 if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)&&!inFrame())navigator.serviceWorker.register("sw.js").catch(()=>{});
 render();
