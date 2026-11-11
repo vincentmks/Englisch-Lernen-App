@@ -1,0 +1,42 @@
+TEATIME – SO KOMMT DIE APP AUFS IPHONE
+======================================
+
+Die App ist eine "Web-App": Sie liegt einmal im Internet, dein Vater
+installiert sie mit einem Tipp auf seinem Startbildschirm. Danach
+läuft sie im Vollbild mit eigenem Symbol, auch ohne Internet, und
+ganz ohne Claude-Konto.
+
+1) HOCHLADEN (einmalig, kostenlos, ca. 5 Minuten)
+   - Die ZIP-Datei entpacken. Du hast dann einen Ordner "teatime".
+   - Am Computer https://app.netlify.com/drop öffnen.
+   - Kostenloses Konto anlegen (sonst wird die Seite nach kurzer
+     Zeit wieder gelöscht).
+   - Den ganzen Ordner "teatime" in das Feld ziehen.
+   - Netlify zeigt dir einen Link, z. B. https://irgendwas.netlify.app
+   - Tipp: Unter "Site configuration" → "Change site name" kannst du
+     einen schöneren Namen wählen, z. B. teatime-papa.netlify.app
+
+2) AUFS IPHONE DEINES VATERS
+   - Den Link in SAFARI öffnen (nicht in Chrome oder WhatsApp).
+   - Unten auf das Teilen-Symbol tippen (Quadrat mit Pfeil nach oben).
+   - "Zum Home-Bildschirm" wählen und "Hinzufügen" tippen.
+   - Ab jetzt die App immer über das Teatime-Symbol öffnen.
+
+3) BEIM ERSTEN START
+   - Einmal auf einen Lautsprecher-Knopf tippen, damit das iPhone
+     die Vorlesestimme lädt.
+   - Wenn beim Nachsprechen nach dem Mikrofon gefragt wird: erlauben.
+     Klappt das Mikrofon in der App nicht, einfach ins Textfeld tippen
+     und die Mikrofon-Taste der iPhone-Tastatur benutzen.
+   - Schönere Stimme: Einstellungen → Bedienungshilfen →
+     Gesprochene Inhalte → Stimmen → Englisch → eine "Premium"- oder
+     "Erweitert"-Stimme laden. Die App nimmt sie dann automatisch.
+
+4) UPDATES
+   - Bekommst du eine neue Version, lädst du den neuen Ordner auf
+     derselben Netlify-Seite unter "Deploys" erneut hoch.
+   - Der Fortschritt deines Vaters bleibt dabei erhalten.
+
+WICHTIG
+   - Der Lernfortschritt liegt nur auf dem iPhone. Löscht er das
+     Teatime-Symbol vom Startbildschirm, ist der Fortschritt weg.
