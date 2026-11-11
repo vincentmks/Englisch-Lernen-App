@@ -252,7 +252,7 @@ const tOf=id=>+id.split(".")[0];
 const lvOf=id=>T[tOf(id)].lv;
 const KEY="teatime.v1";
 function today(){const d=new Date();return Math.floor((d.getTime()-d.getTimezoneOffset()*60000)/86400000)}
-function def(){return{cards:{},xp:0,streak:0,best:0,last:0,days:{},goal:60,rate:.85,accent:"en-GB",sound:true,read:{},dlg:{},level:1,hist:[],badges:{},bestCombo:0,blitz:0,pairs:0,perfect:false,noInstall:false,goalDay:0,reps:0}}
+function def(){return{cards:{},xp:0,streak:0,best:0,last:0,days:{},goal:60,rate:.85,accent:"en-GB",sound:true,read:{},dlg:{},level:1,hist:[],badges:{},bestCombo:0,blitz:0,pairs:0,perfect:false,noInstall:false,goalDay:0,reps:0,placed:false}}
 function load(){let s=def();try{const r=localStorage.getItem(KEY);if(r)s=Object.assign(s,JSON.parse(r))}catch(e){}
   const t=today();for(const k in s.days)if(+k<t-60)delete s.days[k];return s}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
@@ -375,6 +375,13 @@ function startLesson(ti){const s=tStat(ti),fresh=s.ids.filter(id=>!seen(id)).sli
   if(!fresh.length){q=shuffle(s.ids).slice(0,10).map(id=>mk(id,pickType()));newSes("review",T[ti].t,q,{ti});return}
   for(let i=0;i<fresh.length;i+=3){const c=fresh.slice(i,i+3);c.forEach(id=>q.push({id,type:"intro"}));shuffle(c).forEach(id=>q.push(mk(id,"ende")));shuffle(c).forEach(id=>q.push(mk(id,canSpeak()&&Math.random()<.4?"listen":"deen")))}
   newSes("lesson",T[ti].t,q,{ti})}
+function placeQs(lv){const ty=["ende","deen","ende","deen","build"];return shuffle(ALL.filter(id=>lvOf(id)===lv)).slice(0,5).map((id,k)=>mk(id,ty[k]))}
+function startPlace(){newSes("place","Einstufungstest",placeQs(1),{lv:1,lvRight:0,passed:0,wrong:[]})}
+function placeMore(a){if(a.lvRight>=4){a.passed=a.lv;if(a.lv<MAXLV){a.lv++;a.lvRight=0;a.q=a.q.concat(placeQs(a.lv));return true}}return false}
+function finishPlace(a){a.end=true;hush();const res=Math.min(MAXLV,a.passed+1),t=today();
+  ALL.forEach(id=>{if(lvOf(id)<res&&a.wrong.indexOf(id)<0&&card(id).box<3)S.cards[id]={box:3,due:t+5+Math.floor(Math.random()*26)}});
+  a.wrong.forEach(id=>{S.cards[id]={box:1,due:t}});
+  a.res=res;S.level=Math.max(S.level,res);S.placed=true;S.hist=[];save();checkBadges();if(res>1){confetti();beep("win")}render()}
 function startReview(){const due=shuffle(ALL.filter(isDue)).slice(0,15);if(!due.length){startQuiz();return}newSes("review","Wiederholung",due.map(id=>mk(id,pickType())))}
 function startQuiz(){const p=learnedPool(6);newSes("quiz","Gemischtes Quiz",shuffle(p).slice(0,10).map(id=>mk(id,pickType())))}
 function blitzItem(){const p=learnedPool(8),w=pick(p);return mk(w,Math.random()<.5?"ende":"deen")}
@@ -386,7 +393,9 @@ function tickTimer(){const a=ui.act;if(!a){stopTimer();return}
   else if(a.type==="pairs"){const e=document.getElementById("ptime");if(e)e.textContent=fmtTime(Date.now()-a.t0)}}
 const fmtTime=ms=>{const s=Math.floor(ms/1000);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
 function sayItem(){const a=ui.act;if(!a||a.type!=="ses"||a.end)return;const it=a.q[a.pos];if(!it)return;if(it.type==="intro"||it.type==="listen"||it.type==="ende")speak(W(it.id)[0])}
-function resolve(it,ok){const a=ui.act;it.state=ok?"ok":"no";a.total++;if(ok){a.right++;a.combo++}else a.combo=0;a.maxc=Math.max(a.maxc,a.combo);
+function resolve(it,ok){const a=ui.act;
+  if(a.kind==="place"){it.state=ok?"ok":"no";a.total++;if(ok){a.right++;a.lvRight++}else a.wrong.push(it.id);beep(ok?"ok":"bad");render();return}
+  it.state=ok?"ok":"no";a.total++;if(ok){a.right++;a.combo++}else a.combo=0;a.maxc=Math.max(a.maxc,a.combo);
   if(a.maxc>S.bestCombo)S.bestCombo=a.maxc;record(ok);grade(it.id,ok);
   const xp=ok?(a.kind==="blitz"?5:a.combo>=5?15:10):0;a.xp+=xp;gain(xp);beep(ok?"ok":"bad");
   if(a.kind==="blitz"){if(ok)a.score++;render();setTimeout(()=>{if(ui.act===a&&!a.end){a.q.push(blitzItem());a.pos++;render()}},ok?450:1300);return}
@@ -416,6 +425,7 @@ function vStart(){const t=today(),done=S.days[t]||0,pct=Math.min(1,done/S.goal),
   const C2=2*Math.PI*30;
   let html="";
   if(isIOS()&&!standalone()&&!inFrame()&&!S.noInstall)html+=`<div class="banner"><span style="font-size:1.8rem">📲</span><div class="grow"><strong>Als App installieren</strong><p class="small">Unten in Safari auf <b>Teilen</b> tippen, dann <b>„Zum Home-Bildschirm“</b>.</p><button class="btn link" data-a="noInstall">Ausblenden</button></div></div>`;
+  if(!S.placed)html+=`<div class="card" style="display:flex;flex-direction:column;gap:.7rem;border-color:var(--pri)"><div class="row">${tilly("wow",64)}<div class="grow"><h3>${S.xp?"Ist dir das zu leicht?":"Kannst du schon etwas Englisch?"}</h3><p class="small muted">Ein kurzer Test (etwa 3 Minuten) findet deine Stufe. Was du schon kannst, überspringst du.</p></div></div><button class="btn pri block" data-a="place">Einstufungstest starten</button><button class="btn link" data-a="noPlace">${S.xp?"Nein danke":"Ich fange ganz von vorne an"}</button></div>`;
   html+=`<div class="hello">${tilly("happy",84)}<div class="bubble"><span class="tag">${greet[0]} · Satz des Tages</span><div class="row"><span class="big grow">${esc(ph[2])}</span>${spk(ph[2])}</div><span>${esc(ph[3])}</span></div></div>
   <div class="card goal"><svg class="ring" width="76" height="76" viewBox="0 0 76 76" role="img" aria-label="${Math.round(pct*100)} Prozent vom Tagesziel"><circle class="bg" cx="38" cy="38" r="30"/><circle class="fg" cx="38" cy="38" r="30" stroke-dasharray="${C2}" stroke-dashoffset="${C2*(1-pct)}" transform="rotate(-90 38 38)"/><text x="38" y="44" text-anchor="middle" font-size="18" font-family="ui-rounded,sans-serif" font-weight="600" fill="#1b2545">${pct>=1?"✓":Math.round(pct*100)+"%"}</text></svg>
     <div class="grow" style="display:flex;flex-direction:column;gap:.45rem"><div class="row between"><h3>Tagesziel</h3><span class="small muted">${Math.min(done,S.goal)} / ${S.goal} ⭐</span></div><div class="week">${week}</div></div></div>`;
@@ -458,7 +468,8 @@ function vProfile(){const r=rate(),learned=ALL.filter(seen).length,solid=ALL.fil
    ${S.level<MAXLV?`<p class="small muted">Stufe ${S.level+1} öffnet sich von selbst, sobald beides voll ist:</p>
    <div class="small">85 % richtig bei den letzten 20 Antworten<div class="bar thin" style="margin-top:.3rem"><i style="width:${Math.min(100,(r||0)/.85*100)}%"></i></div></div>
    <div class="small">60 % der Wörter von Stufe ${S.level} gelernt<div class="bar thin" style="margin-top:.3rem"><i style="width:${Math.min(100,lvShare()/.6*100)}%"></i></div></div>`:`<p class="small muted">Höchste Stufe erreicht. Klasse!</p>`}
-   <p class="small"><strong>${newCount()} neue Wörter pro Lektion.</strong> <span class="muted">Das passt sich deiner Trefferquote an.</span></p></div></section>
+   <p class="small"><strong>${newCount()} neue Wörter pro Lektion.</strong> <span class="muted">Das passt sich deiner Trefferquote an.</span></p>
+   <button class="btn block" data-a="place">Einstufungstest machen</button></div></section>
   <section><h3>Abzeichen</h3><div class="badges">${BADGES.map(b=>`<div class="badge${S.badges[b[0]]?"":" off"}"><span class="em">${b[1]}</span><strong>${b[2]}</strong><span>${b[3]}</span></div>`).join("")}</div></section>
   <section><h3>Einstellungen</h3><div class="card" style="display:flex;flex-direction:column;gap:.9rem">
    <div class="setting"><span>Aussprache</span>${seg("accent",[["en-GB","Britisch"],["en-US","Amerikanisch"]])}</div>
@@ -474,6 +485,9 @@ function vProfile(){const r=rate(),learned=ALL.filter(seen).length,solid=ALL.fil
 
 /* ---- Lern-Session ---- */
 function vSes(a){
+  if(a.end&&a.kind==="place"){const r=a.res;return endv(r>1?"wow":"happy",`Deine Stufe: ${r} · ${LN[r]}`,
+    r>1?`Du kannst schon einiges! ${r>2?"Die Stufen 1 bis "+(r-1)+" sind":"Stufe 1 ist"} freigeschaltet und zählt als gelernt. Diese Wörter kommen ab und zu in der Wiederholung vor, damit nichts verloren geht.`:"Am besten startest du mit den Grundlagen. Die gehen schnell!",
+    [[a.right+"/"+a.total,"richtig"],[r,"deine Stufe"],[ALL.filter(seen).length,"Wörter bekannt"]],`<button class="btn pri block" data-a="exit">Los geht's</button>`)}
   if(a.end){const acc=a.total?Math.round(a.right/a.total*100):100;
     if(a.kind==="blitz")return endv(a.record?"wow":"happy",a.record?"Neuer Rekord!":"Zeit ist um!",`${a.score} richtige Antworten in 60 Sekunden`,[[a.score,"Treffer"],["+"+a.xp,"Punkte"],[S.blitz,"Rekord"]],`<button class="btn pri block" data-a="blitz">Noch eine Runde</button><button class="btn block" data-a="exit">Fertig</button>`);
     const nxt=a.kind==="lesson"?curTopic():-1;
@@ -482,6 +496,7 @@ function vSes(a){
   const it=a.q[a.pos],w=W(it.id),fin=it.state!==null&&it.state!==undefined,blitz=a.kind==="blitz";
   let h=`<div class="actbar"><button class="x" data-a="exit" aria-label="Beenden">✕</button>`;
   h+=blitz?`<div class="bar sun"><i id="tbar" style="width:${Math.max(0,a.deadline-Date.now())/600}%"></i></div><span class="chip" id="tleft">${Math.ceil(Math.max(0,a.deadline-Date.now())/1000)} s</span><span class="chip star">⚡ ${a.score}</span>`
+    :a.kind==="place"?`<div class="bar"><i style="width:${Math.min(100,a.pos/20*100)}%"></i></div><span class="chip">Stufe ${a.lv}</span>`
     :`<div class="bar"><i style="width:${a.pos/a.q.length*100}%"></i></div>${a.combo>=3?`<span class="combo">🔥 ${a.combo}</span>`:""}`;
   h+=`</div>`;
   if(it.type==="intro")return h+`<p class="prompt">Neues Wort</p><div class="qcard"><div class="row"><span class="word">${esc(w[0])}</span>${spk(w[0])}</div><span class="de">${esc(w[1])}</span><div class="hr"></div>
@@ -497,8 +512,9 @@ function vSes(a){
       :`<p class="prompt">Was hörst du?</p><div class="qcard center"><button class="spk huge" data-a="say" data-s="${esc(w[0])}" aria-label="Noch einmal anhören">${SPK}</button><span class="small muted">Tippen zum Anhören</span></div>`;
     h+=`<div class="opts">${it.opts.map((o,k)=>{const r=fin&&o===it.id,x=fin&&it.chosen===k&&o!==it.id;
       return `<button class="opt${f===0?" en":""}${r?" right":x?" wrong shake":""}" data-a="opt" data-k="${k}"${fin?" disabled":""}><span>${esc(W(o)[f])}</span><span>${r?"✓":x?"✗":""}</span></button>`}).join("")}</div>`}
+  if(a.kind==="place"&&!fin)h+=`<div class="center" style="display:flex;justify-content:center"><button class="btn link" data-a="idk">Weiß ich nicht</button></div>`;
   if(fin&&!blitz){const ok=it.state==="ok",en=it.type==="build"?w[2]:w[0],de=it.type==="build"?w[3]:w[1];
-    h+=`<div class="foot ${ok?"ok":"no"}"><div class="wrap"><div class="row between"><span class="verdict">${ok?pick(["Richtig!","Super!","Klasse!","Genau!"]):"Nicht ganz."}</span>${ok?`<span class="chip star">+${a.combo>=5?15:10} ⭐</span>`:""}</div>
+    h+=`<div class="foot ${ok?"ok":"no"}"><div class="wrap"><div class="row between"><span class="verdict">${ok?pick(["Richtig!","Super!","Klasse!","Genau!"]):"Nicht ganz."}</span>${ok&&a.kind!=="place"?`<span class="chip star">+${a.combo>=5?15:10} ⭐</span>`:""}</div>
       ${ok?"":`<div class="row"><span class="grow"><strong class="en">${esc(en)}</strong><br>${esc(de)}</span>${spk(en)}</div>`}
       <button class="btn ${ok?"ok":"bad"} block" data-a="next">Weiter</button></div></div>`}
   return h}
@@ -565,7 +581,10 @@ const ACT={
   text(d){hush();ui.act={type:"text",i:+d.i,open:{},ans:{},reading:false};go()},
   dlg(d){startDlg(+d.i)},rep(){startRep()},
   exit(){hush();stopTimer();ui.act=null;go()},
-  next(){const a=ui.act;a.pos++;if(a.pos>=a.q.length)finishSes(a);else{render();window.scrollTo(0,0);sayItem()}},
+  next(){const a=ui.act;a.pos++;if(a.pos>=a.q.length&&!(a.kind==="place"&&placeMore(a))){if(a.kind==="place")finishPlace(a);else finishSes(a);return}render();window.scrollTo(0,0);sayItem()},
+  place(){startPlace()},
+  noPlace(){S.placed=true;save();render()},
+  idk(){const a=ui.act,it=a.q[a.pos];if(it.state!==null)return;resolve(it,false)},
   opt(d){const a=ui.act,it=a.q[a.pos];if(it.state!==null)return;it.chosen=+d.k;resolve(it,it.opts[it.chosen]===it.id)},
   tok(d){const it=ui.act.q[ui.act.pos];if(it.state!==null||it.picked.indexOf(+d.k)>=0)return;it.picked.push(+d.k);render()},
   untok(d){const it=ui.act.q[ui.act.pos];if(it.state!==null)return;it.picked.splice(+d.k,1);render()},
