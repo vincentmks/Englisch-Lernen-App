@@ -195,6 +195,17 @@ section{display:flex;flex-direction:column;gap:.75rem}
 .gapbox{display:inline-block;min-width:3.5em;border-bottom:3px solid var(--pri);color:var(--pri2);font-weight:700;text-align:center}
 .rule{display:flex;flex-direction:column;gap:.55rem;font-size:1.05rem}
 .rule b{color:var(--pri2)}
+.wt{display:flex;flex-wrap:wrap;align-items:baseline;gap:.1rem .15rem;line-height:1.3}
+.w{border:0;background:none;padding:.18rem .28rem;border-radius:9px;font-size:1.22rem;font-weight:600;color:var(--pri2);font-family:var(--body)}
+.w.f{background:var(--berry);color:#fff;font-size:1.05rem}
+.w:active{background:var(--tint)}
+.p{font-size:1.2rem;color:var(--muted)}
+.tk{display:inline-flex;align-items:baseline}
+.tk .w+.p{margin-left:-.25rem}
+.wsent{display:flex;flex-direction:column;gap:.35rem;padding:.7rem 0;border-bottom:1px dashed var(--line)}
+.wsent:last-child{border-bottom:0}
+.wtools{display:flex;gap:.5rem;align-items:center}
+@media (prefers-reduced-motion:no-preference){.w.f{animation:flip .25s ease-out}@keyframes flip{from{transform:rotateX(90deg)}to{transform:none}}}
 .marks .hit{color:var(--ok2);font-weight:700}.marks .gap{color:var(--bad2);text-decoration:underline}
 .msg.me .marks{background:#fff;border-radius:10px;padding:.3rem .5rem;color:var(--ink)}
 .mic{width:6rem;height:6rem;border-radius:50%;border:0;background:var(--berry);color:#fff;box-shadow:0 6px 0 var(--berry2);display:inline-flex;align-items:center;justify-content:center}
@@ -249,7 +260,7 @@ body.focus #nav{display:none}
 <script>
 "use strict";
 /* ================= Daten ================= */
-const C=window.CONTENT||{topics:[],texts:[],dialogs:[],grammar:[]},T=C.topics,R=C.texts,D=C.dialogs,G=C.grammar||[];
+const C=window.CONTENT||{topics:[],texts:[],dialogs:[],grammar:[]},T=C.topics,R=C.texts,D=C.dialogs,G=C.grammar||[],WT=C.wtexts||[],LEX=C.lex||{};
 const LN=["","Einsteiger","Grundlagen","Aufbau","Fortgeschritten","Mittelstufe","Profi","Experte"],MAXLV=7,INT=[0,1,2,4,8,16];
 const ALL=[];T.forEach((t,ti)=>t.w.forEach((_,wi)=>ALL.push(ti+"."+wi)));
 const W=id=>{const p=id.split(".");return T[+p[0]].w[+p[1]]};
@@ -257,7 +268,7 @@ const tOf=id=>+id.split(".")[0];
 const lvOf=id=>T[tOf(id)].lv;
 const KEY="teatime.v1";
 function today(){const d=new Date();return Math.floor((d.getTime()-d.getTimezoneOffset()*60000)/86400000)}
-function def(){return{cards:{},xp:0,streak:0,best:0,last:0,days:{},goal:60,rate:.85,accent:"en-GB",sound:true,read:{},dlg:{},level:1,hist:[],badges:{},bestCombo:0,blitz:0,pairs:0,perfect:false,noInstall:false,goalDay:0,reps:0,placed:false,gram:{}}}
+function def(){return{cards:{},xp:0,streak:0,best:0,last:0,days:{},goal:60,rate:.85,accent:"en-GB",sound:true,read:{},dlg:{},level:1,hist:[],badges:{},bestCombo:0,blitz:0,pairs:0,perfect:false,noInstall:false,goalDay:0,reps:0,placed:false,gram:{},wread:{},srOff:false}}
 function load(){let s=def();try{const r=localStorage.getItem(KEY);if(r)s=Object.assign(s,JSON.parse(r))}catch(e){}
   const t=today();for(const k in s.days)if(+k<t-60)delete s.days[k];return s}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
@@ -288,11 +299,13 @@ function voice(){const n=v=>(v.lang||"").replace("_","-");const m=voices.filter(
 let curU=null,unlockedTTS=false;
 function speak(text,done){const end=()=>{if(done)done()};if(!synth){end();return}
   try{if(!voices.length)loadVoices();const u=new SpeechSynthesisUtterance(text);const v=voice();if(v)u.voice=v;u.lang=v?v.lang:S.accent;u.rate=S.rate;u.volume=1;
-    let fin=false;const f=()=>{if(fin)return;fin=true;if(curU===u)curU=null;end()};u.onend=f;u.onerror=f;curU=u;
+    let fin=false;const f=()=>{if(fin)return;fin=true;clearTimeout(wd);if(curU===u)curU=null;end()};u.onend=f;u.onerror=f;curU=u;
+    const wd=setTimeout(f,2500+text.split(" ").length*700/S.rate);
     if(synth.speaking||synth.pending){synth.cancel();setTimeout(()=>{if(curU===u)synth.speak(u)},120)}else synth.speak(u);
     if(synth.paused)synth.resume()}catch(e){end()}}
 function unlockTTS(){if(unlockedTTS||!synth)return;unlockedTTS=true;loadVoices();try{const u=new SpeechSynthesisUtterance(" ");u.volume=0;synth.speak(u)}catch(e){}}
-document.addEventListener("touchend",unlockTTS,{passive:true});document.addEventListener("click",unlockTTS,true);
+document.addEventListener("touchend",unlockTTS,{passive:true});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&synth){try{synth.cancel()}catch(e){}curU=null}});document.addEventListener("click",unlockTTS,true);
 function hush(){curU=null;try{if(synth)synth.cancel()}catch(e){}if(ui.rec){try{ui.rec.abort()}catch(e){}ui.rec=null;ui.listening=false}}
 const SPK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
 const MIC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
@@ -300,7 +313,7 @@ const spk=t=>canSpeak()?`<button class="spk" data-a="say" data-s="${esc(t)}" ari
 
 /* Spracherkennung (im Browser eingebaut) */
 const SRC=window.SpeechRecognition||window.webkitSpeechRecognition;
-const hasSR=()=>!!SRC&&!ui.srOff&&!(isIOS()&&standalone());
+const hasSR=()=>!!SRC&&!ui.srOff&&!S.srOff;
 const KBTIP=`<p class="small muted">Tipp: Damit das iPhone dein Englisch richtig aufschreibt, unter Einstellungen → Allgemein → Tastatur → Tastaturen eine <b>englische Tastatur</b> hinzufügen. Beim Sprechen dann mit der 🌐-Taste auf Englisch wechseln und auf das Mikrofon der Tastatur tippen.</p>`;
 const NUM={"0":"zero","1":"one","2":"two","3":"three","4":"four","5":"five","6":"six","7":"seven","8":"eight","9":"nine","10":"ten","11":"eleven","12":"twelve","20":"twenty","40":"forty","50":"fifty"};
 const CONTR={"it's":"it is","i'm":"i am","don't":"do not","isn't":"is not","can't":"cannot","i'll":"i will","that's":"that is","what's":"what is","let's":"let us","you're":"you are","we're":"we are","they're":"they are","doesn't":"does not","didn't":"did not","i've":"i have","won't":"will not","there's":"there is","where's":"where is","i'd":"i would","he's":"he is","she's":"she is","aren't":"are not","wasn't":"was not"};
@@ -309,9 +322,12 @@ function compare(target,heard){const said=words(heard);const marks=target.split(
   return{marks,score:marks.filter(m=>m[1]).length/marks.length,heard}}
 function listen(target,cb){if(!SRC){cb(null);return}hush();let r;try{r=new SRC()}catch(e){cb(null);return}
   r.lang=S.accent;r.interimResults=false;r.maxAlternatives=3;r.continuous=false;let got=false;
-  r.onresult=e=>{got=true;ui.listening=false;let best=null;const res=e.results[0];for(let i=0;i<res.length;i++){const m=compare(target,res[i].transcript);if(!best||m.score>best.score)best=m}cb(best)};
-  r.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed"){ui.srOff=true;toast("Das Mikrofon ist nicht erlaubt. Nutze das Textfeld.")}else if(e.error==="no-speech")toast("Ich habe nichts gehört. Versuch es noch einmal.")};
-  r.onend=()=>{ui.listening=false;ui.rec=null;if(!got)render()};
+  r.onresult=e=>{got=true;clearTimeout(to);ui.listening=false;let best=null;const res=e.results[0];for(let i=0;i<res.length;i++){const m=compare(target,res[i].transcript);if(!best||m.score>best.score)best=m}cb(best)};
+  let heard=false;const srFail=()=>{S.srOff=true;save();toast("Das App-Mikrofon klappt auf diesem Gerät nicht. Nutze das Textfeld und die Mikrofon-Taste der Tastatur.")};
+  const to=setTimeout(()=>{if(!got){try{r.abort()}catch(e){}if(!heard)srFail()}},9000);
+  r.onaudiostart=()=>{heard=true};
+  r.onerror=e=>{clearTimeout(to);if(e.error==="not-allowed"||e.error==="service-not-allowed"||e.error==="audio-capture"||e.error==="network")srFail();else if(e.error==="no-speech")toast("Ich habe nichts gehört. Sprich direkt nach dem Tippen.")};
+  r.onend=()=>{clearTimeout(to);ui.listening=false;ui.rec=null;if(!got)render()};
   ui.rec=r;ui.listening=true;try{r.start()}catch(e){ui.listening=false;ui.rec=null;cb(null);return}render()}
 
 function toast(html){const d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.innerHTML=html;document.body.appendChild(d);setTimeout(()=>d.remove(),2900)}
@@ -354,7 +370,7 @@ const BADGES=[
 ["w300","📕","300 Wörter","300 Wörter gelernt",()=>ALL.filter(seen).length>=300],
 ["wall","🎓","Wortmeister","Alle Wörter gelernt",()=>ALL.every(seen)],
 ["c10","🎯","Zehn am Stück","10 richtige Antworten in Folge",()=>S.bestCombo>=10],
-["r1","📖","Leseratte","Ersten Text verstanden",()=>Object.keys(S.read).length>=1],
+["r1","📖","Leseratte","Ersten Text gelesen",()=>Object.keys(S.read).length+Object.keys(S.wread).length>=1],
 ["r8","📚","Bücherwurm","8 Texte verstanden",()=>Object.keys(S.read).length>=8],
 ["d1","🗣️","Erstes Gespräch","Ein Gespräch geschafft",()=>Object.keys(S.dlg).length>=1],
 ["d5","🎭","Gesprächsprofi","5 Gespräche geschafft",()=>Object.keys(S.dlg).length>=5],
@@ -429,7 +445,7 @@ function finishSes(a){a.end=true;stopTimer();hush();if(a.kind==="blitz"&&a.score
 function route(){const h=location.hash.replace("#","");return["start","ueben","lesen","grammatik","sprechen","profil"].indexOf(h)>=0?h:"start"}
 function go(){render();window.scrollTo(0,0)}
 function render(){const app=document.getElementById("app"),a=ui.act;document.body.classList.toggle("focus",!!a);
-  if(a){app.innerHTML=`<main class="wrap act">${a.type==="ses"?vSes(a):a.type==="pairs"?vPairs(a):a.type==="text"?vText(a):a.type==="dlg"?vDlg(a):a.type==="gram"?vGram(a):vRep(a)}</main>`;return}
+  if(a){app.innerHTML=`<main class="wrap act">${a.type==="ses"?vSes(a):a.type==="pairs"?vPairs(a):a.type==="text"?vText(a):a.type==="dlg"?vDlg(a):a.type==="gram"?vGram(a):a.type==="wtext"?vWText(a):vRep(a)}</main>`;return}
   const r=route();document.querySelectorAll("#nav a").forEach(x=>{if(x.dataset.tab===r)x.setAttribute("aria-current","page");else x.removeAttribute("aria-current")});
   app.innerHTML=topbar()+`<main class="wrap">${r==="ueben"?vPlay():r==="lesen"?vRead():r==="grammatik"?vGramList():r==="sprechen"?vTalk():r==="profil"?vProfile():vStart()}</main>`}
 function topbar(){return `<header class="top"><div class="wrap"><div class="logo">${tilly("happy",36)}Teatime</div>
@@ -470,7 +486,12 @@ function vPlay(){const due=ALL.filter(isDue).length;
    <a class="tile t1" href="#sprechen" style="text-decoration:none;background:var(--sun);color:var(--ink);box-shadow:0 6px 0 var(--sun2)"><span class="em">🎤</span><strong>Nachsprechen</strong><span>Laut üben</span></a>
   </div></section>`}
 
-function vRead(){let h=`<section><h2>Lesen</h2><p class="muted">Kurze Geschichten aus dem Alltag. Tippe auf einen Satz für die Übersetzung.</p><div class="list">`;let last=0;
+function vRead(){const tab=ui.readTab||"wort";let h=`<section><h2>Lesen</h2><div class="seg" role="group" style="align-self:flex-start"><button data-a="rtab" data-v="wort" aria-pressed="${tab==="wort"}">Wort für Wort</button><button data-a="rtab" data-v="geschichten" aria-pressed="${tab!=="wort"}">Geschichten mit Fragen</button></div>`;
+  if(tab==="wort"){h+=`<p class="muted">Tippe beim Lesen auf jedes Wort, das du nicht kennst. Es dreht sich um und zeigt die Übersetzung.</p><div class="list">`;let l2=0;
+    WT.forEach((r,i)=>{if(r.lv!==l2){l2=r.lv;h+=`<div class="subhead">Stufe ${r.lv} · ${LN[r.lv]}</div>`}const lock=r.lv>S.level;
+      h+=`<button class="item" data-a="wtext" data-i="${i}"${lock?" disabled":""}><span class="em">${lock?"🔒":S.wread[i]?"✅":"🔍"}</span><span class="grow"><strong class="en">${esc(r.t)}</strong><br><span class="meta">${esc(r.de)} · ${r.s.length} Sätze</span></span>${S.wread[i]?'<span class="chip ok">✓</span>':""}</button>`});
+    return h+`</div></section>`}
+  h+=`<p class="muted">Kurze Geschichten aus dem Alltag. Tippe auf einen Satz für die Übersetzung, danach kommen Fragen.</p><div class="list">`;let last=0;
   R.forEach((r,i)=>{if(r.lv!==last){last=r.lv;h+=`<div class="subhead">Stufe ${r.lv} · ${LN[r.lv]}</div>`}const lock=r.lv>S.level;
     h+=`<button class="item" data-a="text" data-i="${i}"${lock?" disabled":""}><span class="em">${lock?"🔒":S.read[i]?"✅":"📄"}</span><span class="grow"><strong class="en">${esc(r.t)}</strong><br><span class="meta">${esc(r.de)} · ${r.s.length} Sätze</span></span>${S.read[i]?'<span class="chip ok">+30</span>':""}</button>`});
   return h+`</div></section>`}
@@ -499,6 +520,10 @@ function vProfile(){const r=rate(),learned=ALL.filter(seen).length,solid=ALL.fil
    <div class="setting"><span>Töne</span>${seg("sound",[["true","An"],["false","Aus"]])}</div>
    <div class="setting"><span>Stufe selbst wählen</span>${seg("level",[[1,"1"],[2,"2"],[3,"3"],[4,"4"],[5,"5"],[6,"6"],[7,"7"]])}</div>
    <div class="setting"><span>Vorlesen testen</span><button class="btn" data-a="say" data-s="Hello! This is a test.">🔊 Test</button></div>
+   <details><summary class="small" style="cursor:pointer">Sprach-Check (bei Problemen)</summary><div class="small muted" style="display:flex;flex-direction:column;gap:.3rem;margin-top:.5rem">
+     <span>Vorlesen: ${synth?"verfügbar":"nicht verfügbar"} · Stimme: ${(()=>{const v=voice();return v?esc(v.name+" ("+v.lang+")"):"Standard"})()} · ${voices.filter(v=>(v.lang||"").indexOf("en")===0).length} englische Stimmen</span>
+     <span>App-Mikrofon: ${SRC?(S.srOff?"ausgeschaltet (Tastatur-Mikrofon wird genutzt)":"verfügbar"):"nicht verfügbar (Tastatur-Mikrofon wird genutzt)"} · ${standalone()?"installierte App":"Browser"}</span>
+     ${SRC&&S.srOff?`<button class="btn" data-a="srOn">App-Mikrofon noch einmal probieren</button>`:""}</div></details>
    <p class="small muted">Kein Ton? Prüfe den Lautlos-Schalter an der Seite des iPhones und die Lautstärke.</p>
    <p class="small muted">Dein Fortschritt bleibt auf diesem Handy gespeichert. Wenn du die App löschst, ist er weg.</p>
    ${ui.resetAsk?`<div class="setting"><span>Wirklich alles löschen?</span><span class="row"><button class="btn bad" data-a="resetYes">Löschen</button><button class="btn" data-a="resetNo">Nein</button></span></div>`:`<div><button class="btn link" data-a="resetAsk">Fortschritt löschen</button></div>`}
@@ -591,6 +616,16 @@ function readFrom(i){const a=ui.act;if(!a||a.type!=="text"||!a.reading)return;co
   document.querySelectorAll(".sent").forEach((e,k)=>e.classList.toggle("now",k===i));if(i>=r.s.length){a.reading=false;render();return}
   speak(r.s[i][0],()=>{if(ui.act===a&&a.reading)setTimeout(()=>readFrom(i+1),350)})}
 
+/* ---- Lesetraining ---- */
+const wcore=t=>{const m=t.match(/^([^A-Za-z0-9'_\-é]*)(.*?)([^A-Za-z0-9'_\-é]*)$/);return m};
+function vWText(a){const r=WT[a.i],n=Object.keys(a.flip).length;
+  let h=`<div class="actbar"><button class="x" data-a="exit" aria-label="Schließen">✕</button><h2 class="grow en">${esc(r.t)}</h2><span class="chip">🔍 ${n}</span></div>
+  <p class="small muted">Tippe auf ein Wort, um es umzudrehen. Nochmal tippen dreht es zurück.</p><div class="card">`;
+  r.s.forEach((s,k)=>{const toks=s[0].split(" ");
+    h+=`<div class="wsent"><div class="wt">${toks.map((t,j)=>{const m=wcore(t),key=m[2].toLowerCase(),id=k+"-"+j;if(!m[2])return `<span class="p">${esc(t)}</span>`;
+      const f=a.flip[id],g=r.g[key]||LEX[key]||"?";return `<span class="tk">`+(m[1]?`<span class="p">${esc(m[1])}</span>`:"")+`<button class="w${f?" f":""}" data-a="wflip" data-id="${id}" data-en="${esc(m[2].replace(/_/g," "))}" aria-label="${esc(m[2].replace(/_/g," "))}">${esc(f?g:m[2].replace(/_/g," "))}</button>`+(m[3]?`<span class="p">${esc(m[3])}</span>`:"")+`</span>`}).join("")}</div>
+      <div class="wtools">${spk(s[0].replace(/_/g," "))}<button class="btn link" style="min-height:2rem" data-a="wtr" data-k="${k}">${a.tr[k]?"Übersetzung ausblenden":"Ganzen Satz übersetzen"}</button></div>${a.tr[k]?`<span>${esc(s[1])}</span>`:""}</div>`});
+  return h+`</div><button class="btn pri block" data-a="wdone">Fertig gelesen</button>`}
 /* ---- Gespräche ---- */
 function startDlg(i){hush();const a={type:"dlg",i,step:0,log:[],opts:[],wrong:[],answered:false,xp:0,first:0,end:false};ui.act=a;setStep(a);go()}
 function setStep(a){const st=D[a.i].st[a.step];a.log.push({who:"npc",en:st[0],de:st[1],show:false});a.opts=shuffle(st[2].map((o,k)=>({en:o[0],de:o[1],ok:k===st[3]})));a.wrong=[];a.answered=false;speak(st[0])}
@@ -602,7 +637,7 @@ function vDlg(a){const d=D[a.i];
   h+=`</div>`;
   if(!a.answered)h+=`<p class="prompt" style="font-size:1.15rem">Was antwortest du?</p><div class="opts">${a.opts.map((o,k)=>{const no=a.wrong.indexOf(k)>=0;return `<button class="opt en${no?" wrong shake":""}" data-a="dopt" data-k="${k}"${no?" disabled":""}><span>${esc(o.en)}</span><span>${no?"✗":""}</span></button>`}).join("")}</div>${a.wrong.length?`<p class="small muted">Das passt hier nicht. Lies die Frage noch einmal oder zeig die Übersetzung an.</p>`:""}`;
   else h+=`<div class="foot ok"><div class="wrap"><div class="row between"><span class="verdict">${a.wrong.length?"Richtig!":"Super, auf Anhieb!"}</span><span class="chip star">+${a.wrong.length?5:10} ⭐</span></div>
-    ${hasSR()?`<div class="btns"><button class="btn${ui.listening?" berry":""}" data-a="dsay">${ui.listening?"🎙️ Ich höre …":"🎤 Laut sagen"}</button><button class="btn ok" data-a="dnext">Weiter</button></div>`:`${a.log[a.log.length-1].marks?"":`<p class="small">Sag den Satz laut über die Mikrofon-Taste der Tastatur (freiwillig):</p><div class="say"><input id="say" type="text" lang="en" autocomplete="off" autocapitalize="off" placeholder="Hier erscheint dein Satz" value="${esc(a.draft||"")}" aria-label="Dein Satz"><button class="btn" data-a="dcheck">Prüfen</button></div>`}<button class="btn ok block" data-a="dnext">Weiter</button>`}</div></div>`;
+    ${hasSR()?`<div class="btns"><button class="btn${ui.listening?" berry":""}" data-a="dsay">${ui.listening?"🎙️ Ich höre …":"🎤 Laut sagen"}</button><button class="btn ok" data-a="dnext">Weiter</button></div>`:`${a.log[a.log.length-1].marks?"":`<p class="small">Sag den Satz laut über die Mikrofon-Taste der Tastatur (freiwillig):</p><div class="say"><input id="say" type="text" lang="en" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="off" placeholder="Hier erscheint dein Satz" value="${esc(a.draft||"")}" aria-label="Dein Satz"><button class="btn" data-a="dcheck">Prüfen</button></div>`}<button class="btn ok block" data-a="dnext">Weiter</button>`}</div></div>`;
   return h}
 
 /* ---- Nachsprechen ---- */
@@ -615,7 +650,7 @@ function vRep(a){const w=W(a.id),r=a.res;
     <p class="marks" style="font-size:1.15rem">${r.marks.map(m=>`<span class="${m[1]?"hit":"gap"}">${esc(m[0])}</span>`).join(" ")}</p><p class="small muted">Verstanden wurde: „${esc(r.heard)}“</p></div>
     <div class="btns"><button class="btn" data-a="repAgain">Nochmal</button><button class="btn pri" data-a="rep">Nächster Satz</button></div>`;
   else{if(hasSR())h+=`<div class="center" style="display:flex;flex-direction:column;gap:.5rem;padding:.6rem 0"><button class="mic${ui.listening?" on":""}" data-a="rmic" aria-label="Mikrofon">${MIC}</button><span class="muted">${ui.listening?"Ich höre zu …":"Tippen und sprechen"}</span></div>`;
-    h+=`<p class="small muted">${hasSR()?"Oder":"Tippe ins Feld und nutze"} die Mikrofon-Taste deiner Tastatur:</p><div class="say"><input id="say" type="text" lang="en" autocomplete="off" autocapitalize="off" placeholder="Hier erscheint dein Satz" value="${esc(a.draft)}" aria-label="Dein Satz"><button class="btn pri" data-a="rcheck">Prüfen</button></div>${hasSR()?"":KBTIP}`}
+    h+=`<p class="small muted">${hasSR()?"Oder ins Feld tippen und":"Tippe ins Feld und nutze"} die Mikrofon-Taste der Tastatur${hasSR()?" nutzen":""}:</p><div class="say"><input id="say" type="text" lang="en" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="off" placeholder="Hier erscheint dein Satz" value="${esc(a.draft)}" aria-label="Dein Satz"><button class="btn pri" data-a="rcheck">Prüfen</button></div>${hasSR()?"":KBTIP}`}
   return h}
 
 function dres(a,m,res){m.marks=res.marks;m.score=res.score;if(res.score>=.8){beep("ok");if(!m.bonus){m.bonus=true;S.reps++;a.xp+=5;gain(5)}}else beep("bad");render()}
@@ -630,6 +665,11 @@ const ACT={
   exit(){hush();stopTimer();ui.act=null;go()},
   next(){const a=ui.act;a.pos++;if(a.pos>=a.q.length&&!(a.kind==="place"&&placeMore(a))){if(a.kind==="place")finishPlace(a);else finishSes(a);return}render();window.scrollTo(0,0);sayItem()},
   place(){startPlace()},
+  rtab(d){ui.readTab=d.v;render()},
+  wtext(d){hush();ui.act={type:"wtext",i:+d.i,flip:{},tr:{}};go()},
+  wflip(d){const a=ui.act;if(a.flip[d.id])delete a.flip[d.id];else{a.flip[d.id]=true;speak(d.en)}render()},
+  wtr(d){const a=ui.act;a.tr[d.k]=!a.tr[d.k];render()},
+  wdone(){const a=ui.act;if(!S.wread[a.i]){S.wread[a.i]=true;gain(20);confetti();beep("win");toast("📖 Text geschafft! +20 ⭐")}save();checkBadges();ACT.exit()},
   gram(d){startGram(+d.i)},
   gstart(){ui.act.intro=false;go()},
   gintro(){ui.act.intro=true;ui.act.back=true;go()},
@@ -666,6 +706,7 @@ const ACT={
   repAgain(){const a=ui.act;a.res=null;render();speak(W(a.id)[2])},
   set(d){S[d.k]=d.k==="accent"?d.v:d.k==="sound"?d.v==="true":+d.v;save();render();if(d.k==="accent"||d.k==="rate")speak("Hello! How are you today?")},
   noInstall(){S.noInstall=true;save();render()},
+  srOn(){S.srOff=false;ui.srOff=false;save();render()},
   resetAsk(){ui.resetAsk=true;render()},resetNo(){ui.resetAsk=false;render()},
   resetYes(){S=def();save();ui.resetAsk=false;ui.act=null;go()}
 };
