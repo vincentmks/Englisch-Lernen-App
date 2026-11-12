@@ -93,7 +93,7 @@ section{display:flex;flex-direction:column;gap:.75rem}
 /* path */
 .lvl{border-radius:20px;padding:.9rem 1.1rem;color:#fff;display:flex;flex-direction:column;gap:.2rem;box-shadow:0 5px 0 rgba(0,0,0,.15)}
 .lvl.l1{background:var(--pri)}.lvl.l2{background:var(--sky)}.lvl.l3{background:var(--berry)}.lvl.l4{background:var(--plum)}
-.lvl.l5{background:#e8772e}.lvl.l6{background:var(--ink)}
+.lvl.l5{background:#e8772e}.lvl.l6{background:var(--ink)}.lvl.l7{background:#13795b}
 .lvl.locked{background:#9aa5ba}
 .lvl small{opacity:.92}
 .path{display:flex;flex-direction:column;align-items:center;gap:1.4rem;padding:1.6rem 0 .8rem}
@@ -250,7 +250,7 @@ body.focus #nav{display:none}
 "use strict";
 /* ================= Daten ================= */
 const C=window.CONTENT||{topics:[],texts:[],dialogs:[],grammar:[]},T=C.topics,R=C.texts,D=C.dialogs,G=C.grammar||[];
-const LN=["","Einsteiger","Grundlagen","Aufbau","Fortgeschritten","Mittelstufe","Profi"],MAXLV=6,INT=[0,1,2,4,8,16];
+const LN=["","Einsteiger","Grundlagen","Aufbau","Fortgeschritten","Mittelstufe","Profi","Experte"],MAXLV=7,INT=[0,1,2,4,8,16];
 const ALL=[];T.forEach((t,ti)=>t.w.forEach((_,wi)=>ALL.push(ti+"."+wi)));
 const W=id=>{const p=id.split(".");return T[+p[0]].w[+p[1]]};
 const tOf=id=>+id.split(".")[0];
@@ -364,6 +364,8 @@ const BADGES=[
 ["l2","⭐","Stufe 2","Grundlagen erreicht",()=>S.level>=2],
 ["l4","🌟","Stufe 4","Fortgeschritten erreicht",()=>S.level>=4],
 ["l6","👑","Stufe 6","Profi erreicht",()=>S.level>=6],
+["l7","🎖️","Stufe 7","Experte erreicht",()=>S.level>=7],
+["w700","📓","700 Wörter","700 Wörter gelernt",()=>ALL.filter(seen).length>=700],
 ["g1","🧩","Grammatik-Start","Ein Grammatik-Thema mit 3 Sternen",()=>Object.keys(S.gram).some(k=>S.gram[k]>=3)],
 ["gall","📐","Grammatik-Profi","Alle Grammatik-Themen geschafft",()=>G.length>0&&G.every((_,i)=>S.gram[i]>=1)],
 ["w500","📙","500 Wörter","500 Wörter gelernt",()=>ALL.filter(seen).length>=500],
@@ -373,7 +375,7 @@ function checkBadges(){let n=0;BADGES.forEach(b=>{if(!S.badges[b[0]]&&b[4]()){S.
 /* ================= Fragen ================= */
 function hiRate(){const r=rate();return r!==null&&r>=.85}
 function pickType(){const r=rate(),lo=r===null||r<.6;const t=lo?["ende","ende","deen"]:hiRate()?["deen","build","build","ende"]:["ende","deen","build"];if(canSpeak())t.push("listen");
-  if(S.level>=3)t.push("gap");if(S.level>=4)t.push("type");if(S.level>=5)t.push("gap","type","type");return pick(t)}
+  if(S.level>=3)t.push("gap");if(S.level>=4)t.push("type");if(S.level>=5)t.push("gap","type","type","sent");if(S.level>=6)t.push("sent","sent");return pick(t)}
 const ekey=w=>w.replace(/^to /,"").replace(/[.?!]$/,"");
 const reEsc=x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
 const norm=x=>x.toLowerCase().replace(/[’`]/g,"'").replace(/[^a-z' ]/g," ").replace(/\s+/g," ").trim();
@@ -383,7 +385,7 @@ function typeOk(target,v){const t=norm(target),x=norm(v);if(!x)return 0;const va
   if(vars.indexOf(x)>=0)return 2;return vars.some(y=>y.length>=5&&lev(y,x)<=1)?1:0}
 function mk(id,type){const w=W(id);
   if(type==="build"){const tk=w[2].split(" ");if(tk.length>=3&&tk.length<=(hiRate()?9:7)){let bank;do{bank=shuffle(tk.map((t,i)=>({t,i})))}while(bank.every((b,k)=>b.i===k));return{id,type,bank,picked:[],state:null}}type="ende"}
-  if(type==="type")return{id,type,val:"",state:null};
+  if(type==="type"||type==="sent")return{id,type,val:"",state:null};
   let gapS=null;if(type==="gap"){const re=new RegExp("\\b"+reEsc(ekey(w[0]))+"\\b","i");if(re.test(w[2]))gapS=w[2].replace(re,"<span class=\"gapbox\">?</span>");else type="deen"}
   if(type==="listen"&&!canSpeak())type="deen";
   const f=type==="ende"?1:0,ti=tOf(id),same=shuffle(T[ti].w.map((_,i)=>ti+"."+i)),rest=shuffle(ALL.filter(x=>lvOf(x)<=S.level+1)),opts=[id];
@@ -392,9 +394,9 @@ function mk(id,type){const w=W(id);
 function newSes(kind,title,q,extra){stopTimer();hush();ui.act=Object.assign({type:"ses",kind,title,q,pos:0,xp:0,right:0,total:0,combo:0,maxc:0,end:false},extra||{});go();sayItem()}
 function startLesson(ti){const s=tStat(ti),fresh=s.ids.filter(id=>!seen(id)).slice(0,newCount());let q=[];
   if(!fresh.length){q=shuffle(s.ids).slice(0,10).map(id=>mk(id,pickType()));newSes("review",T[ti].t,q,{ti});return}
-  for(let i=0;i<fresh.length;i+=3){const c=fresh.slice(i,i+3);c.forEach(id=>q.push({id,type:"intro"}));shuffle(c).forEach(id=>q.push(mk(id,"ende")));const lv=T[ti].lv;shuffle(c).forEach(id=>q.push(mk(id,lv>=5?pick(["type","gap"]):lv>=3?pick(["gap","deen"]):canSpeak()&&Math.random()<.4?"listen":"deen")))}
+  for(let i=0;i<fresh.length;i+=3){const c=fresh.slice(i,i+3);c.forEach(id=>q.push({id,type:"intro"}));shuffle(c).forEach(id=>q.push(mk(id,"ende")));const lv=T[ti].lv;shuffle(c).forEach(id=>q.push(mk(id,lv>=6?pick(["type","gap","sent"]):lv>=5?pick(["type","gap"]):lv>=3?pick(["gap","deen"]):canSpeak()&&Math.random()<.4?"listen":"deen")))}
   newSes("lesson",T[ti].t,q,{ti})}
-function placeQs(lv){const ty=lv>=3?["gap","deen","type","ende","build"]:["ende","deen","ende","deen","build"];return shuffle(ALL.filter(id=>lvOf(id)===lv)).slice(0,5).map((id,k)=>mk(id,ty[k]))}
+function placeQs(lv){const ty=lv>=5?["gap","sent","type","deen","build"]:lv>=3?["gap","deen","type","ende","build"]:["ende","deen","ende","deen","build"];return shuffle(ALL.filter(id=>lvOf(id)===lv)).slice(0,5).map((id,k)=>mk(id,ty[k]))}
 function startPlace(){newSes("place","Einstufungstest",placeQs(1),{lv:1,lvRight:0,passed:0,wrong:[]})}
 function placeMore(a){if(a.lvRight>=4){a.passed=a.lv;if(a.lv<MAXLV){a.lv++;a.lvRight=0;a.q=a.q.concat(placeQs(a.lv));return true}}return false}
 function finishPlace(a){a.end=true;hush();const res=Math.min(MAXLV,a.passed+1),t=today();
@@ -419,7 +421,7 @@ function resolve(it,ok){const a=ui.act;
   const xp=ok?(a.kind==="blitz"?5:a.combo>=5?15:10):0;a.xp+=xp;gain(xp);beep(ok?"ok":"bad");
   if(a.kind==="blitz"){if(ok)a.score++;render();setTimeout(()=>{if(ui.act===a&&!a.end){a.q.push(blitzItem());a.pos++;render()}},ok?450:1300);return}
   if(!ok&&(a.kind==="lesson"||a.kind==="review"))a.q.push(mk(it.id,"ende"));
-  render();if(ok&&canSpeak())speak(it.type==="build"?W(it.id)[2]:W(it.id)[0])}
+  render();if(ok&&canSpeak())speak(it.type==="build"||it.type==="sent"?W(it.id)[2]:W(it.id)[0])}
 function finishSes(a){a.end=true;stopTimer();hush();if(a.kind==="blitz"&&a.score>S.blitz){S.blitz=a.score;a.record=true}save();checkBadges();
   const acc=a.total?a.right/a.total:1;if((a.kind!=="blitz"&&acc>=.8)||a.record){confetti();beep("win")}render()}
 
@@ -495,7 +497,7 @@ function vProfile(){const r=rate(),learned=ALL.filter(seen).length,solid=ALL.fil
    <div class="setting"><span>Sprechtempo</span>${seg("rate",[[.7,"Langsam"],[.85,"Mittel"],[1,"Normal"]])}</div>
    <div class="setting"><span>Tagesziel</span>${seg("goal",[[30,"30 ⭐"],[60,"60 ⭐"],[100,"100 ⭐"]])}</div>
    <div class="setting"><span>Töne</span>${seg("sound",[["true","An"],["false","Aus"]])}</div>
-   <div class="setting"><span>Stufe selbst wählen</span>${seg("level",[[1,"1"],[2,"2"],[3,"3"],[4,"4"],[5,"5"],[6,"6"]])}</div>
+   <div class="setting"><span>Stufe selbst wählen</span>${seg("level",[[1,"1"],[2,"2"],[3,"3"],[4,"4"],[5,"5"],[6,"6"],[7,"7"]])}</div>
    <div class="setting"><span>Vorlesen testen</span><button class="btn" data-a="say" data-s="Hello! This is a test.">🔊 Test</button></div>
    <p class="small muted">Kein Ton? Prüfe den Lautlos-Schalter an der Seite des iPhones und die Lautstärke.</p>
    <p class="small muted">Dein Fortschritt bleibt auf diesem Handy gespeichert. Wenn du die App löschst, ist er weg.</p>
@@ -515,7 +517,7 @@ function vSes(a){
   const it=a.q[a.pos],w=W(it.id),fin=it.state!==null&&it.state!==undefined,blitz=a.kind==="blitz";
   let h=`<div class="actbar"><button class="x" data-a="exit" aria-label="Beenden">✕</button>`;
   h+=blitz?`<div class="bar sun"><i id="tbar" style="width:${Math.max(0,a.deadline-Date.now())/600}%"></i></div><span class="chip" id="tleft">${Math.ceil(Math.max(0,a.deadline-Date.now())/1000)} s</span><span class="chip star">⚡ ${a.score}</span>`
-    :a.kind==="place"?`<div class="bar"><i style="width:${Math.min(100,a.pos/30*100)}%"></i></div><span class="chip">Stufe ${a.lv}</span>`
+    :a.kind==="place"?`<div class="bar"><i style="width:${Math.min(100,a.pos/35*100)}%"></i></div><span class="chip">Stufe ${a.lv}</span>`
     :`<div class="bar"><i style="width:${a.pos/a.q.length*100}%"></i></div>${a.combo>=3?`<span class="combo">🔥 ${a.combo}</span>`:""}`;
   h+=`</div>`;
   if(it.type==="intro")return h+`<p class="prompt">Neues Wort</p><div class="qcard"><div class="row"><span class="word">${esc(w[0])}</span>${spk(w[0])}</div><span class="de">${esc(w[1])}</span><div class="hr"></div>
@@ -525,8 +527,9 @@ function vSes(a){
     <div class="toks ans">${it.picked.map((b,k)=>`<button class="tok" data-a="untok" data-k="${k}"${fin?" disabled":""}>${esc(it.bank[b].t)}</button>`).join("")||'<span class="muted small">Tippe die Wörter in der richtigen Reihenfolge an.</span>'}</div>
     <div class="toks">${it.bank.map((b,k)=>`<button class="tok${it.picked.indexOf(k)>=0?" used":""}" data-a="tok" data-k="${k}"${fin?" disabled":""}>${esc(b.t)}</button>`).join("")}</div>`;
     if(!fin)h+=`<div class="foot"><div class="wrap"><button class="btn pri block" data-a="check"${it.picked.length===it.bank.length?"":" disabled style=\"opacity:.5\""}>Prüfen</button></div></div>`}
-  else if(it.type==="type"){h+=`<p class="prompt">Schreib es auf Englisch</p><div class="qcard center"><span class="word" style="color:var(--ink)">${esc(w[1])}</span></div>
-    <div class="say"><input id="typ" type="text" lang="en" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Englisches Wort" value="${esc(it.val)}" aria-label="Deine Antwort"${fin?" disabled":""}></div>`;
+  else if(it.type==="type"||it.type==="sent"){h+=it.type==="sent"?`<p class="prompt">Übersetze den Satz</p><div class="qcard"><span class="de">${esc(w[3])}</span></div>`:`<p class="prompt">Schreib es auf Englisch</p><div class="qcard center"><span class="word" style="color:var(--ink)">${esc(w[1])}</span></div>`;
+    h+=`
+    <div class="say"><input id="typ" type="text" lang="en" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="${it.type==="sent"?"Englischer Satz":"Englisches Wort"}" value="${esc(it.val)}" aria-label="Deine Antwort"${fin?" disabled":""}></div>`;
     if(!fin)h+=`<div class="foot"><div class="wrap"><button class="btn pri block" data-a="tcheck">Prüfen</button></div></div>`}
   else{const f=it.type==="ende"?1:0,lab=o=>it.type==="gap"?ekey(W(o)[0]):W(o)[f];
     h+=it.type==="ende"?`<p class="prompt">Was heißt das auf Deutsch?</p><div class="qcard center"><div class="row"><span class="word">${esc(w[0])}</span>${spk(w[0])}</div></div>`
@@ -536,9 +539,9 @@ function vSes(a){
     h+=`<div class="opts">${it.opts.map((o,k)=>{const r=fin&&o===it.id,x=fin&&it.chosen===k&&o!==it.id;
       return `<button class="opt${f===0?" en":""}${r?" right":x?" wrong shake":""}" data-a="opt" data-k="${k}"${fin?" disabled":""}><span>${esc(lab(o))}</span><span>${r?"✓":x?"✗":""}</span></button>`}).join("")}</div>`}
   if(a.kind==="place"&&!fin)h+=`<div class="center" style="display:flex;justify-content:center"><button class="btn link" data-a="idk">Weiß ich nicht</button></div>`;
-  if(fin&&!blitz){const ok=it.state==="ok",en=it.type==="build"?w[2]:w[0],de=it.type==="build"?w[3]:w[1];
-    h+=`<div class="foot ${ok?"ok":"no"}"><div class="wrap"><div class="row between"><span class="verdict">${ok?(it.typo?"Richtig! Kleiner Tippfehler.":pick(["Richtig!","Super!","Klasse!","Genau!"])):"Nicht ganz."}</span>${ok&&a.kind!=="place"?`<span class="chip star">+${a.combo>=5?15:10} ⭐</span>`:""}</div>
-      ${ok&&!it.typo?"":`<div class="row"><span class="grow"><strong class="en">${esc(en)}</strong><br>${esc(de)}</span>${spk(en)}</div>`}
+  if(fin&&!blitz){const ok=it.state==="ok",whole=it.type==="build"||it.type==="sent",en=whole?w[2]:w[0],de=whole?w[3]:w[1];
+    h+=`<div class="foot ${ok?"ok":"no"}"><div class="wrap"><div class="row between"><span class="verdict">${ok?(it.near?"Fast perfekt!":it.typo?"Richtig! Kleiner Tippfehler.":pick(["Richtig!","Super!","Klasse!","Genau!"])):"Nicht ganz."}</span>${ok&&a.kind!=="place"?`<span class="chip star">+${a.combo>=5?15:10} ⭐</span>`:""}</div>
+      ${it.marks?`<p class="marks" style="background:var(--card);border-radius:10px;padding:.35rem .6rem">${it.marks.map(m=>`<span class="${m[1]?"hit":"gap"}">${esc(m[0])}</span>`).join(" ")}</p>`:""}${ok&&!it.typo&&!it.near?"":`<div class="row"><span class="grow"><strong class="en">${esc(en)}</strong><br>${esc(de)}</span>${spk(en)}</div>`}
       <button class="btn ${ok?"ok":"bad"} block" data-a="next">Weiter</button></div></div>`}
   return h}
 function endv(mood,title,sub,tiles,btns){return `<div class="endv">${tilly(mood,130)}<h2>${title}</h2><p class="muted">${sub}</p>
@@ -632,7 +635,7 @@ const ACT={
   gintro(){ui.act.intro=true;ui.act.back=true;go()},
   gopt(d){const a=ui.act,it=a.q[a.pos];if(it.state!==null)return;it.chosen=+d.k;const ok=it.opts[it.chosen]===it.ok;it.state=ok?"ok":"no";record(ok);beep(ok?"ok":"bad");if(ok){a.right++;a.xp+=10;gain(10)}render();if(ok)speak(it.s.replace("___",it.ok))},
   gnext(){const a=ui.act;a.pos++;if(a.pos>=a.q.length)finishGram(a);else{render();window.scrollTo(0,0)}},
-  tcheck(){const a=ui.act,it=a.q[a.pos];if(it.state!==null)return;const b=document.getElementById("typ"),v=((b&&b.value)||it.val||"").trim();if(!v)return;it.val=v;const r=typeOk(W(it.id)[0],v);it.typo=r===1;resolve(it,r>0)},
+  tcheck(){const a=ui.act,it=a.q[a.pos];if(it.state!==null)return;const b=document.getElementById("typ"),v=((b&&b.value)||it.val||"").trim();if(!v)return;it.val=v;if(it.type==="sent"){const c=compare(W(it.id)[2],v),ok=c.score>=.85;it.marks=c.marks.map((m,k)=>m);it.near=ok&&c.score<1;if(!ok)it.marks=c.marks;resolve(it,ok);return}const r=typeOk(W(it.id)[0],v);it.typo=r===1;resolve(it,r>0)},
   noPlace(){S.placed=true;save();render()},
   idk(){const a=ui.act,it=a.q[a.pos];if(it.state!==null)return;resolve(it,false)},
   opt(d){const a=ui.act,it=a.q[a.pos];if(it.state!==null)return;it.chosen=+d.k;resolve(it,it.opts[it.chosen]===it.id)},
