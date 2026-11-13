@@ -1,0 +1,40 @@
+name: Stimmen erzeugen
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [content.js, tools/make_audio.py, .github/workflows/audio.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: audio
+  cancel-in-progress: false
+
+jobs:
+  audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Programme installieren
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq espeak-ng ffmpeg
+          pip install -q torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -q "kokoro==0.9.4" soundfile
+      - name: Aufnahmen erzeugen
+        run: python tools/make_audio.py
+      - name: Speichern
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add audio
+          git diff --cached --quiet || git commit -q -m "Stimmen aktualisiert"
+          git pull --rebase -q origin main
+          git push -q

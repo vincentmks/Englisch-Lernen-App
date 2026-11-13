@@ -1,5 +1,5 @@
 /* Teatime: offline cache. Bei jeder neuen Version VERSION hochzählen. */
-const VERSION = "teatime-6";
+const VERSION = "teatime-7";
 const FILES = ["./", "index.html", "content.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
@@ -13,7 +13,7 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
   const url = new URL(e.request.url);
-  const font = url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com";
+  const font = url.hostname === "cdn.jsdelivr.net";
   if (url.origin !== location.origin && !font) return;
   // Netz zuerst, damit Updates ankommen; ohne Netz aus dem Speicher.
   e.respondWith(
