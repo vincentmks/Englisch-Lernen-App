@@ -269,8 +269,8 @@ const tOf=id=>+id.split(".")[0];
 const lvOf=id=>T[tOf(id)].lv;
 const KEY="teatime.v1";
 function today(){const d=new Date();return Math.floor((d.getTime()-d.getTimezoneOffset()*60000)/86400000)}
-function def(){return{cards:{},xp:0,streak:0,best:0,last:0,days:{},goal:60,rate:.85,accent:"en-GB",sound:true,read:{},dlg:{},level:1,hist:[],badges:{},bestCombo:0,blitz:0,pairs:0,perfect:false,noInstall:false,goalDay:0,reps:0,placed:false,gram:{},wread:{},srOff:false}}
-function load(){let s=def();try{const r=localStorage.getItem(KEY);if(r)s=Object.assign(s,JSON.parse(r))}catch(e){}
+function def(){return{cards:{},xp:0,streak:0,best:0,last:0,days:{},goal:60,rate:.85,accent:"en-GB",sound:true,read:{},dlg:{},level:1,hist:[],badges:{},bestCombo:0,blitz:0,pairs:0,perfect:false,noInstall:false,goalDay:0,reps:0,placed:false,gram:{},wread:{},srOff:false,coins:0,spent:0,freeze:0,boostUntil:0,owned:{},wear:{},theme:"teal",rewards:[]}}
+function load(){let s=def();try{const r=localStorage.getItem(KEY);if(r){const j=JSON.parse(r);if(j.coins===undefined)j.coins=j.xp||0;s=Object.assign(s,j)}}catch(e){}
   const t=today();for(const k in s.days)if(+k<t-60)delete s.days[k];return s}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 let S=load();
@@ -378,12 +378,24 @@ function confetti(){if(matchMedia("(prefers-reduced-motion: reduce)").matches)re
   const t0=performance.now();(function f(t){const k=(t-t0)/1700;x.clearRect(0,0,innerWidth,innerHeight);if(k>=1)return;
     P.forEach(p=>{p.vy+=.35;p.x+=p.vx;p.y+=p.vy;p.a+=p.s;x.save();x.globalAlpha=1-k;x.translate(p.x,p.y);x.rotate(p.a);x.fillStyle=p.c;x.fillRect(-p.r/2,-p.r/4,p.r,p.r/2);x.restore()});requestAnimationFrame(f)})(t0)}
 function tilly(mood,size){const mouth=mood==="wow"?'<ellipse cx="48" cy="69" rx="4.5" ry="5.5" fill="#1b2545"/>':mood==="sad"?'<path d="M41 72 Q48 66 55 72" stroke="#1b2545" stroke-width="3.5" fill="none" stroke-linecap="round"/>':'<path d="M40 66 Q48 75 56 66" stroke="#1b2545" stroke-width="3.5" fill="none" stroke-linecap="round"/>';
-  return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true" style="flex:none"><path d="M38 8q-6 7 0 13t0 13M54 6q-6 7 0 13t0 13" stroke="#9db4c6" stroke-width="4" fill="none" stroke-linecap="round"/><ellipse cx="48" cy="90" rx="42" ry="7" fill="#cfdbe7"/><path d="M76 52h5a11 11 0 0 1 0 22h-8" fill="none" stroke="#b02e5d" stroke-width="7"/><path d="M16 42h64v18a32 27 0 0 1-64 0z" fill="#e0457b"/><rect x="13" y="37" width="70" height="9" rx="4.5" fill="#b02e5d"/><circle cx="38" cy="58" r="5" fill="#1b2545"/><circle cx="58" cy="58" r="5" fill="#1b2545"/><circle cx="39.6" cy="56.3" r="1.6" fill="#fff"/><circle cx="59.6" cy="56.3" r="1.6" fill="#fff"/><circle cx="29" cy="66" r="4.5" fill="#ff9dbd" opacity=".75"/><circle cx="67" cy="66" r="4.5" fill="#ff9dbd" opacity=".75"/>${mouth}</svg>`}
+  return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true" style="flex:none">${(S.wear||{}).head?"":`<path d="M38 8q-6 7 0 13t0 13M54 6q-6 7 0 13t0 13" stroke="#9db4c6" stroke-width="4" fill="none" stroke-linecap="round"/>`}<ellipse cx="48" cy="90" rx="42" ry="7" fill="#cfdbe7"/><path d="M76 52h5a11 11 0 0 1 0 22h-8" fill="none" stroke="#b02e5d" stroke-width="7"/><path d="M16 42h64v18a32 27 0 0 1-64 0z" fill="#e0457b"/><rect x="13" y="37" width="70" height="9" rx="4.5" fill="#b02e5d"/><circle cx="38" cy="58" r="5" fill="#1b2545"/><circle cx="58" cy="58" r="5" fill="#1b2545"/><circle cx="39.6" cy="56.3" r="1.6" fill="#fff"/><circle cx="59.6" cy="56.3" r="1.6" fill="#fff"/><circle cx="29" cy="66" r="4.5" fill="#ff9dbd" opacity=".75"/><circle cx="67" cy="66" r="4.5" fill="#ff9dbd" opacity=".75"/>${mouth}${gear()}</svg>`}
 
 /* ================= Fortschritt, Punkte, Stufen ================= */
-function streakNow(){return S.last>=today()-1?S.streak:0}
-function gain(n){if(n<=0)return;const t=today();if(S.last!==t){S.streak=(S.last===t-1)?S.streak+1:1;S.last=t;S.best=Math.max(S.best,S.streak)}
-  S.xp+=n;S.days[t]=(S.days[t]||0)+n;
+function gear(){const w=S.wear||{},o=[];
+  if(w.head==="hat")o.push('<rect x="31" y="9" width="34" height="25" rx="2" fill="#1b2545"/><rect x="31" y="27" width="34" height="5" fill="#e0457b"/><rect x="22" y="32" width="52" height="6" rx="3" fill="#1b2545"/>');
+  if(w.head==="crown")o.push('<path d="M28 37V18l10 9 10-14 10 14 10-9v19z" fill="#ffc93c" stroke="#d39a12" stroke-width="2" stroke-linejoin="round"/><circle cx="48" cy="29" r="2.5" fill="#e0457b"/>');
+  if(w.head==="flower")o.push('<g transform="translate(70 30)"><circle r="5" cx="0" cy="-7" fill="#ff9dbd"/><circle r="5" cx="7" cy="0" fill="#ff9dbd"/><circle r="5" cx="0" cy="7" fill="#ff9dbd"/><circle r="5" cx="-7" cy="0" fill="#ff9dbd"/><circle r="4" fill="#ffc93c"/></g>');
+  if(w.head==="cap")o.push('<path d="M26 37a22 18 0 0 1 44 0z" fill="#2f6fd6"/><path d="M62 35h18a3 3 0 0 1 0 5H62z" fill="#1f50a3"/>');
+  if(w.face==="glasses")o.push('<g fill="none" stroke="#1b2545" stroke-width="2.5"><circle cx="38" cy="58" r="8"/><circle cx="58" cy="58" r="8"/><path d="M46 58h4M30 56l-8-3M66 56l8-3"/></g>');
+  if(w.face==="shades")o.push('<g fill="#1b2545"><rect x="28" y="52" width="18" height="11" rx="4"/><rect x="50" y="52" width="18" height="11" rx="4"/><rect x="45" y="55" width="6" height="2.5"/></g>');
+  if(w.face==="monocle")o.push('<circle cx="58" cy="58" r="9" fill="none" stroke="#d39a12" stroke-width="2.5"/><path d="M64 65q6 8 2 18" fill="none" stroke="#d39a12" stroke-width="1.5"/>');
+  if(w.neck==="bowtie")o.push('<path d="M38 77l10 5-10 5zM58 77l-10 5 10 5z" fill="#2f6fd6"/><circle cx="48" cy="82" r="2.8" fill="#1f50a3"/>');
+  if(w.neck==="medal")o.push('<path d="M42 72l6 10 6-10" fill="none" stroke="#2f6fd6" stroke-width="3"/><circle cx="48" cy="85" r="5" fill="#ffc93c" stroke="#d39a12" stroke-width="1.5"/>');
+  return o.join("")}
+function streakNow(){const g=today()-S.last-1;return g<=0||g<=S.freeze?S.streak:0}
+function gain(n){if(n<=0)return;if(S.boostUntil>Date.now())n*=2;const t=today();
+  if(S.last!==t){const gap=t-S.last-1;if(S.last&&gap>0&&gap<=S.freeze){S.freeze-=gap;S.streak++;setTimeout(()=>toast(`🛌 Ein Ruhetag hat deine Serie gerettet. Noch ${S.freeze} übrig.`),1200)}else S.streak=(S.last===t-1)?S.streak+1:1;S.last=t;S.best=Math.max(S.best,S.streak)}
+  S.xp+=n;S.coins+=n;S.days[t]=(S.days[t]||0)+n;
   if(S.days[t]>=S.goal&&S.goalDay!==t){S.goalDay=t;setTimeout(()=>{toast("🎯 Tagesziel geschafft!");confetti();beep("win")},500)}
   save();checkBadges()}
 function grade(id,ok){const c=card(id),t=today();
@@ -426,6 +438,7 @@ const BADGES=[
 ["g1","🧩","Grammatik-Start","Ein Grammatik-Thema mit 3 Sternen",()=>Object.keys(S.gram).some(k=>S.gram[k]>=3)],
 ["gall","📐","Grammatik-Profi","Alle Grammatik-Themen geschafft",()=>G.length>0&&G.every((_,i)=>S.gram[i]>=1)],
 ["w500","📙","500 Wörter","500 Wörter gelernt",()=>ALL.filter(seen).length>=500],
+["shop1","🛍️","Erster Einkauf","Etwas im Teeladen gekauft",()=>S.spent>0],
 ["xp1k","💎","1000 Punkte","1000 Punkte gesammelt",()=>S.xp>=1000]];
 function checkBadges(){let n=0;BADGES.forEach(b=>{if(!S.badges[b[0]]&&b[4]()){S.badges[b[0]]=today();const d=n++*3100;setTimeout(()=>toast(`${b[1]} Neues Abzeichen: ${b[2]}`),900+d)}});if(n)save()}
 
@@ -489,12 +502,12 @@ function finishSes(a){a.end=true;stopTimer();hush();if(a.kind==="blitz"&&a.score
 /* ================= Ansichten ================= */
 function route(){const h=location.hash.replace("#","");return["start","ueben","lesen","grammatik","sprechen","profil"].indexOf(h)>=0?h:"start"}
 function go(){render();window.scrollTo(0,0)}
-function render(){const app=document.getElementById("app"),a=ui.act;document.body.classList.toggle("focus",!!a);
-  if(a){app.innerHTML=`<main class="wrap act">${a.type==="ses"?vSes(a):a.type==="pairs"?vPairs(a):a.type==="text"?vText(a):a.type==="dlg"?vDlg(a):a.type==="gram"?vGram(a):a.type==="wtext"?vWText(a):vRep(a)}</main>`;return}
+function render(){applyTheme();const app=document.getElementById("app"),a=ui.act;document.body.classList.toggle("focus",!!a);
+  if(a){app.innerHTML=`<main class="wrap act">${a.type==="ses"?vSes(a):a.type==="pairs"?vPairs(a):a.type==="text"?vText(a):a.type==="dlg"?vDlg(a):a.type==="gram"?vGram(a):a.type==="wtext"?vWText(a):a.type==="shop"?vShop(a):vRep(a)}</main>`;return}
   const r=route();document.querySelectorAll("#nav a").forEach(x=>{if(x.dataset.tab===r)x.setAttribute("aria-current","page");else x.removeAttribute("aria-current")});
   app.innerHTML=topbar()+`<main class="wrap">${r==="ueben"?vPlay():r==="lesen"?vRead():r==="grammatik"?vGramList():r==="sprechen"?vTalk():r==="profil"?vProfile():vStart()}</main>`}
 function topbar(){return `<header class="top"><div class="wrap"><div class="logo">${tilly("happy",36)}Teatime</div>
-  <div class="chips"><span class="chip fire" aria-label="${streakNow()} Tage in Folge">🔥 ${streakNow()}</span><span class="chip star" aria-label="${S.xp} Punkte">⭐ ${S.xp}</span></div></div></header>`}
+  <div class="chips"><span class="chip fire" aria-label="${streakNow()} Tage in Folge">🔥 ${streakNow()}</span>${S.boostUntil>Date.now()?`<span class="chip" style="color:var(--sky2)">⚡2×</span>`:""}<button class="chip star" data-a="shop" aria-label="${S.coins} Sterne, Teeladen öffnen">⭐ ${S.coins}</button></div></div></header>`}
 const isIOS=()=>/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const standalone=()=>navigator.standalone===true||matchMedia("(display-mode: standalone)").matches;
 function inFrame(){try{return window.top!==window}catch(e){return true}}
@@ -511,6 +524,7 @@ function vStart(){const t=today(),done=S.days[t]||0,pct=Math.min(1,done/S.goal),
   html+=`<div class="hello">${tilly("happy",84)}<div class="bubble"><span class="tag">${greet[0]} · Satz des Tages</span><div class="row"><span class="big grow">${esc(ph[2])}</span>${spk(ph[2])}</div><span>${esc(ph[3])}</span></div></div>
   <div class="card goal"><svg class="ring" width="76" height="76" viewBox="0 0 76 76" role="img" aria-label="${Math.round(pct*100)} Prozent vom Tagesziel"><circle class="bg" cx="38" cy="38" r="30"/><circle class="fg" cx="38" cy="38" r="30" stroke-dasharray="${C2}" stroke-dashoffset="${C2*(1-pct)}" transform="rotate(-90 38 38)"/><text x="38" y="44" text-anchor="middle" font-size="18" font-family="ui-rounded,sans-serif" font-weight="600" fill="#1b2545">${pct>=1?"✓":Math.round(pct*100)+"%"}</text></svg>
     <div class="grow" style="display:flex;flex-direction:column;gap:.45rem"><div class="row between"><h3>Tagesziel</h3><span class="small muted">${Math.min(done,S.goal)} / ${S.goal} ⭐</span></div><div class="week">${week}</div></div></div>`;
+  html+=`<button class="item" data-a="shop"><span class="em">🛍️</span><span class="grow"><strong>Teeladen</strong><br><span class="meta">Du hast ${S.coins} ⭐. Tausche sie gegen Ruhetage, Farben, Sachen für Tilly oder eigene Belohnungen.</span></span></button>`;
   if(due)html+=`<button class="btn berry block" data-a="review">🔁 ${due===1?"1 Wort":due+" Wörter"} wiederholen</button>`;
   const cur=curTopic();let n=0,path="";const X=[0,58,86,58,0,-58,-86,-58];
   for(let l=1;l<=MAXLV;l++){const lock=l>S.level;
@@ -549,7 +563,7 @@ function vTalk(){let h=`<section><h2>Sprechen</h2><p class="muted">Übe echte Ge
 
 function vProfile(){const r=rate(),learned=ALL.filter(seen).length,solid=ALL.filter(id=>card(id).box>=4).length;
   const seg=(k,o)=>`<div class="seg" role="group">${o.map(x=>`<button data-a="set" data-k="${k}" data-v="${x[0]}" aria-pressed="${String(S[k])===String(x[0])}">${x[1]}</button>`).join("")}</div>`;
-  return `<section><div class="row">${tilly("happy",64)}<div><h2>Dein Profil</h2><p class="muted">${S.xp} Punkte · bester Lauf ${S.best} ${S.best===1?"Tag":"Tage"}</p></div></div>
+  return `<section><div class="row">${tilly("happy",64)}<div><h2>Dein Profil</h2><p class="muted">${S.xp} ⭐ insgesamt gesammelt · ${S.coins} ⭐ übrig · bester Lauf ${S.best} ${S.best===1?"Tag":"Tage"}</p></div></div>
   <div class="stats"><div><strong>${learned}</strong><span>von ${ALL.length} Wörtern</span></div><div><strong>${solid}</strong><span>sitzen sicher</span></div><div><strong>${Object.keys(S.badges).length}</strong><span>von ${BADGES.length} Abzeichen</span></div></div></section>
   <section><div class="card" style="display:flex;flex-direction:column;gap:.6rem"><div class="row between"><h3>Stufe ${S.level} · ${LN[S.level]}</h3><span class="small muted">${r===null?"noch zu wenig Antworten":"Trefferquote "+Math.round(r*100)+" %"}</span></div>
    ${S.level<MAXLV?`<p class="small muted">Stufe ${S.level+1} öffnet sich von selbst, sobald beides voll ist:</p>
@@ -639,6 +653,37 @@ function vGram(a){const g=G[a.i];
   if(fin){const ok=it.state==="ok";h+=`<div class="foot ${ok?"ok":"no"}"><div class="wrap"><div class="row between"><span class="verdict">${ok?pick(["Richtig!","Genau!","Super!"]):"Nicht ganz."}</span>${ok?'<span class="chip star">+10 ⭐</span>':""}</div>
     <div class="row"><span class="grow"><strong class="en">${esc(full)}</strong></span>${spk(full)}</div><button class="btn ${ok?"ok":"bad"} block" data-a="gnext">Weiter</button></div></div>`}
   return h}
+/* ---- Teeladen ---- */
+const THEMES={teal:["Petrol","#0f8b8d","#0a6466","#dcf2f1",0],berry:["Beere","#c2185b","#8e1043","#fbe3ee",250],ocean:["Ozean","#2f6fd6","#1f50a3","#e1ebfb",250],forest:["Wald","#2e7d32","#1b5e20","#e3f2e4",250],sunset:["Abendrot","#e8772e","#b85715","#fdeadb",250],plum:["Pflaume","#7a4fd6","#5a35a8","#ece5fb",250]};
+const GEAR={hat:["Zylinder","🎩","head",200],cap:["Kappe","🧢","head",150],flower:["Blume","🌸","head",200],crown:["Krone","👑","head",600],glasses:["Brille","👓","face",150],shades:["Sonnenbrille","🕶️","face",250],monocle:["Monokel","🧐","face",300],bowtie:["Fliege","🎀","neck",150],medal:["Medaille","🏅","neck",400]};
+function applyTheme(){const t=THEMES[S.theme]||THEMES.teal,st=document.documentElement.style;st.setProperty("--pri",t[1]);st.setProperty("--pri2",t[2]);st.setProperty("--tint",t[3]);const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t[1]}
+function pay(p){if(S.coins<p){toast(`Dir fehlen noch ${p-S.coins} ⭐`);return false}S.coins-=p;S.spent+=p;beep("ok");return true}
+function vShop(a){const c=k=>a.confirm===k;
+  const buyBtn=(k,p,label)=>c(k)?`<span class="row"><button class="btn ok" data-a="buy" data-k="${k}">Ja, für ${p} ⭐</button><button class="btn link" data-a="buyNo">Nein</button></span>`
+    :`<button class="btn${S.coins<p?"":" pri"}" data-a="buyAsk" data-k="${k}"${S.coins<p?' style="opacity:.6"':""}>${label||p+" ⭐"}</button>`;
+  const boost=S.boostUntil>Date.now()?Math.ceil((S.boostUntil-Date.now())/60000):0;
+  let h=`<div class="actbar"><button class="x" data-a="exit" aria-label="Schließen">✕</button><h2 class="grow">Teeladen</h2><span class="chip star">⭐ ${S.coins}</span></div>
+  <div class="hello">${tilly("happy",96)}<div class="bubble"><span class="tag">Welcome to my shop!</span><span>Hier tauschst du deine Sterne ein. Jede richtige Antwort bringt neue.</span></div></div>
+  <section><h3>Nützliches</h3><div class="list">
+   <div class="item" style="cursor:default"><span class="em">🛌</span><span class="grow"><strong>Ruhetag</strong><br><span class="meta">Rettet deine Serie, wenn du einen Tag nicht lernst. Vorrat: ${S.freeze} von 3</span></span>${S.freeze>=3?'<span class="chip ok">voll</span>':buyBtn("freeze",150)}</div>
+   <div class="item" style="cursor:default"><span class="em">⚡</span><span class="grow"><strong>Doppelte Sterne</strong><br><span class="meta">${boost?`Läuft noch ${boost} Minuten`:"20 Minuten lang zählt alles doppelt"}</span></span>${boost?'<span class="chip ok">aktiv</span>':buyBtn("boost",120)}</div>
+  </div></section>
+  <section><h3>Für Tilly</h3><p class="small muted">Tilly ist die Teetasse. Gekaufte Sachen kannst du jederzeit an- und ausziehen.</p><div class="list">`;
+  for(const k in GEAR){const g=GEAR[k],own=S.owned[k],on=S.wear[g[2]]===k;
+    h+=`<div class="item" style="cursor:default"><span class="em">${g[1]}</span><span class="grow"><strong>${g[0]}</strong></span>${own?`<button class="btn${on?" ok":""}" data-a="wear" data-k="${k}">${on?"Trägt sie ✓":"Anziehen"}</button>`:buyBtn(k,g[3])}</div>`}
+  h+=`</div></section><section><h3>Farben der App</h3><div class="list">`;
+  for(const k in THEMES){const t=THEMES[k],own=!t[4]||S.owned["th_"+k],on=S.theme===k;
+    h+=`<div class="item" style="cursor:default"><span class="em"><span style="display:inline-block;width:1.6rem;height:1.6rem;border-radius:50%;background:${t[1]};box-shadow:0 3px 0 ${t[2]}"></span></span><span class="grow"><strong>${t[0]}</strong></span>${own?`<button class="btn${on?" ok":""}" data-a="theme" data-k="${k}">${on?"Aktiv ✓":"Benutzen"}</button>`:buyBtn("th_"+k,t[4])}</div>`}
+  h+=`</div></section><section><h3>Eigene Belohnungen</h3><p class="small muted">Lege echte Belohnungen fest, zum Beispiel „Pizza essen gehen“ oder „Kinoabend“. Wer genug Sterne hat, löst sie ein.</p><div class="list">`;
+  S.rewards.forEach((r,i)=>{const pct=Math.min(100,S.coins/r.p*100);
+    h+=`<div class="card" style="display:flex;flex-direction:column;gap:.5rem;padding:.9rem 1rem"><div class="row between"><strong>🎁 ${esc(r.n)}</strong><span class="chip star">${r.p} ⭐</span></div>
+      ${r.done?`<p class="small" style="color:var(--ok2)"><strong>✓ Eingelöst am ${esc(r.done)}</strong></p><button class="btn link" data-a="rwDel" data-i="${i}">Entfernen</button>`
+      :`<div class="bar thin"><i style="width:${pct}%"></i></div>${c("rw"+i)?`<span class="row"><button class="btn ok" data-a="rwGo" data-i="${i}">Ja, einlösen</button><button class="btn link" data-a="buyNo">Nein</button></span>`
+        :`<div class="row between"><button class="btn${S.coins>=r.p?" pri":""}" data-a="rwAsk" data-i="${i}"${S.coins>=r.p?"":' style="opacity:.6"'}>${S.coins>=r.p?"Einlösen":`Noch ${r.p-S.coins} ⭐`}</button><button class="btn link" data-a="rwDel" data-i="${i}">Löschen</button></div>`}`}</div>`});
+  h+=`</div><div class="card" style="display:flex;flex-direction:column;gap:.6rem"><strong>Neue Belohnung</strong><input id="rwname" type="text" maxlength="40" placeholder="z. B. Pizza essen gehen" style="min-height:3rem;border:2px solid var(--line);border-radius:14px;padding:.4rem .8rem;background:var(--card)">
+    <div class="seg" role="group" style="display:grid;grid-template-columns:repeat(5,1fr)">${[300,500,1000,2000,5000].map(p=>`<button data-a="rwP" data-v="${p}" aria-pressed="${(a.rwp||1000)===p}">${p}</button>`).join("")}</div>
+    <button class="btn" data-a="rwAdd">Hinzufügen</button></div></section>`;
+  return h}
 /* ---- Wortpaare ---- */
 function startPairs(){stopTimer();hush();ui.act={type:"pairs",round:1,rounds:3,used:[],sel:{},done:[],bad:null,mist:0,t0:Date.now(),end:false};newRound(ui.act);go();ui.timer=setInterval(tickTimer,500)}
 function newRound(a){const {cur,prev}=levelIds(),p=freshPick(cur.concat(prev).filter(id=>a.used.indexOf(id)<0),40,"recQ"),ids=[];
@@ -719,6 +764,22 @@ const ACT={
   exit(){hush();stopTimer();ui.act=null;go()},
   next(){const a=ui.act;a.pos++;if(a.pos>=a.q.length&&!(a.kind==="place"&&placeMore(a))){if(a.kind==="place")finishPlace(a);else finishSes(a);return}render();window.scrollTo(0,0);sayItem()},
   place(){startPlace()},
+  shop(){hush();ui.act={type:"shop",confirm:null,rwp:1000};go()},
+  buyAsk(d){ui.act.confirm=d.k;render()},
+  buyNo(){ui.act.confirm=null;render()},
+  buy(d){const a=ui.act,k=d.k;a.confirm=null;
+    if(k==="freeze"){if(S.freeze<3&&pay(150)){S.freeze++;toast("🛌 Ruhetag gekauft")}}
+    else if(k==="boost"){if(pay(120)){S.boostUntil=Date.now()+20*60000;toast("⚡ 20 Minuten doppelte Sterne!")}}
+    else if(GEAR[k]){if(pay(GEAR[k][3])){S.owned[k]=true;S.wear[GEAR[k][2]]=k;confetti();toast(`${GEAR[k][1]} Tilly freut sich!`)}}
+    else if(k.indexOf("th_")===0){const t=k.slice(3);if(THEMES[t]&&pay(THEMES[t][4])){S.owned[k]=true;S.theme=t;confetti();toast("🎨 Neue Farbe!")}}
+    save();checkBadges();render()},
+  wear(d){const g=GEAR[d.k];if(!g||!S.owned[d.k])return;S.wear[g[2]]=S.wear[g[2]]===d.k?null:d.k;save();render()},
+  theme(d){const t=THEMES[d.k];if(!t||(t[4]&&!S.owned["th_"+d.k]))return;S.theme=d.k;save();render()},
+  rwP(d){ui.act.rwp=+d.v;const n=document.getElementById("rwname");ui.act.rwn=n?n.value:"";render();const m=document.getElementById("rwname");if(m)m.value=ui.act.rwn||""},
+  rwAdd(){const n=document.getElementById("rwname"),v=((n&&n.value)||"").trim();if(!v){toast("Gib der Belohnung einen Namen.");return}S.rewards.push({n:v,p:ui.act.rwp||1000,done:null});ui.act.rwn="";save();render()},
+  rwAsk(d){const r=S.rewards[+d.i];if(S.coins<r.p){toast(`Dir fehlen noch ${r.p-S.coins} ⭐`);return}ui.act.confirm="rw"+d.i;render()},
+  rwGo(d){const r=S.rewards[+d.i];ui.act.confirm=null;if(r&&!r.done&&pay(r.p)){r.done=new Date().toLocaleDateString("de-DE");confetti();beep("win");toast("🎉 Eingelöst! Viel Spaß damit.")}save();checkBadges();render()},
+  rwDel(d){S.rewards.splice(+d.i,1);save();render()},
   rtab(d){ui.readTab=d.v;render()},
   wtext(d){hush();ui.act={type:"wtext",i:+d.i,flip:{},tr:{}};go()},
   wflip(d){const a=ui.act;if(a.flip[d.id])delete a.flip[d.id];else{a.flip[d.id]=true;speak(d.en)}render()},
