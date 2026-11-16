@@ -302,16 +302,16 @@ const AUD=new Audio();AUD.preload="auto";let AMAN=null;
 fetch("audio/index.json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(j=>{if(j)AMAN={gb:new Set(j.gb||[]),us:new Set(j.us||[])}}).catch(()=>{});
 function fnv(t){let h=0x811c9dc5;for(const b of new TextEncoder().encode(t)){h^=b;h=Math.imul(h,0x01000193)>>>0}return h.toString(16).padStart(8,"0")}
 const audioCount=()=>AMAN?AMAN[S.accent==="en-US"?"us":"gb"].size:0;
-const PR={.7:.75,.85:.88,1:1};let lastSay={t:"",at:0};
+const PR={.7:.85,.85:1,1:1.12};let lastSay={t:"",at:0};
 function speak(text,done,slow){const t=String(text).replace(/_/g," ").replace(/\s+/g," ").trim(),acc=S.accent==="en-US"?"us":"gb",k=fnv(t);
   if(AMAN&&AMAN[acc].has(k)){try{if(synth)synth.cancel()}catch(e){}curU=null;AUD.pause();let fin=false;
     const ok=()=>{if(fin)return;fin=true;AUD.onended=AUD.onerror=null;if(done)done()};
     const bad=()=>{if(fin)return;fin=true;AUD.onended=AUD.onerror=null;speakSynth(t,done,slow)};
-    const r=slow?.7:(PR[S.rate]||.88);AUD.onended=ok;AUD.onerror=bad;AUD.src="audio/"+acc+"/"+k+".mp3";AUD.defaultPlaybackRate=r;AUD.playbackRate=r;AUD.onloadedmetadata=AUD.onplaying=()=>{if(Math.abs(AUD.playbackRate-r)>.01)AUD.playbackRate=r};
+    const r=slow?.78:(PR[S.rate]||1);AUD.onended=ok;AUD.onerror=bad;AUD.src="audio/"+acc+"/"+k+".mp3";AUD.defaultPlaybackRate=r;AUD.playbackRate=r;AUD.onloadedmetadata=AUD.onplaying=()=>{if(Math.abs(AUD.playbackRate-r)>.01)AUD.playbackRate=r};
     try{const p=AUD.play();if(p&&p.catch)p.catch(bad)}catch(e){bad()}return}
   speakSynth(t,done,slow)}
 function speakSynth(text,done,slow){const end=()=>{if(done)done()};if(!synth){end();return}
-  try{if(!voices.length)loadVoices();const u=new SpeechSynthesisUtterance(text);const v=voice();if(v)u.voice=v;u.lang=v?v.lang:S.accent;u.rate=slow?.6:S.rate*.95;u.volume=1;
+  try{if(!voices.length)loadVoices();const u=new SpeechSynthesisUtterance(text);const v=voice();if(v)u.voice=v;u.lang=v?v.lang:S.accent;u.rate=slow?.65:S.rate;u.volume=1;
     let fin=false;const f=()=>{if(fin)return;fin=true;clearTimeout(wd);if(curU===u)curU=null;end()};u.onend=f;u.onerror=f;curU=u;
     const wd=setTimeout(f,2500+text.split(" ").length*700/S.rate);
     if(synth.speaking||synth.pending){synth.cancel();setTimeout(()=>{if(curU===u)synth.speak(u)},120)}else synth.speak(u);
