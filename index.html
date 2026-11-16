@@ -206,6 +206,7 @@ section{display:flex;flex-direction:column;gap:.75rem}
 .wsent:last-child{border-bottom:0}
 .wtools{display:flex;gap:.5rem;align-items:center}
 @media (prefers-reduced-motion:no-preference){.w.f{animation:flip .25s ease-out}@keyframes flip{from{transform:rotateX(90deg)}to{transform:none}}}
+.marks .soft{color:var(--muted)}
 .marks .hit{color:var(--ok2);font-weight:700}.marks .gap{color:var(--bad2);text-decoration:underline}
 .msg.me .marks{background:#fff;border-radius:10px;padding:.3rem .5rem;color:var(--ink)}
 .mic{width:6rem;height:6rem;border-radius:50%;border:0;background:var(--berry);color:#fff;box-shadow:0 6px 0 var(--berry2);display:inline-flex;align-items:center;justify-content:center}
@@ -301,15 +302,16 @@ const AUD=new Audio();AUD.preload="auto";let AMAN=null;
 fetch("audio/index.json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(j=>{if(j)AMAN={gb:new Set(j.gb||[]),us:new Set(j.us||[])}}).catch(()=>{});
 function fnv(t){let h=0x811c9dc5;for(const b of new TextEncoder().encode(t)){h^=b;h=Math.imul(h,0x01000193)>>>0}return h.toString(16).padStart(8,"0")}
 const audioCount=()=>AMAN?AMAN[S.accent==="en-US"?"us":"gb"].size:0;
-function speak(text,done){const t=String(text).replace(/_/g," ").replace(/\s+/g," ").trim(),acc=S.accent==="en-US"?"us":"gb",k=fnv(t);
+const PR={.7:.75,.85:.88,1:1};let lastSay={t:"",at:0};
+function speak(text,done,slow){const t=String(text).replace(/_/g," ").replace(/\s+/g," ").trim(),acc=S.accent==="en-US"?"us":"gb",k=fnv(t);
   if(AMAN&&AMAN[acc].has(k)){try{if(synth)synth.cancel()}catch(e){}curU=null;AUD.pause();let fin=false;
     const ok=()=>{if(fin)return;fin=true;AUD.onended=AUD.onerror=null;if(done)done()};
-    const bad=()=>{if(fin)return;fin=true;AUD.onended=AUD.onerror=null;speakSynth(t,done)};
-    AUD.onended=ok;AUD.onerror=bad;AUD.src="audio/"+acc+"/"+k+".mp3";AUD.playbackRate=S.rate/.85;
+    const bad=()=>{if(fin)return;fin=true;AUD.onended=AUD.onerror=null;speakSynth(t,done,slow)};
+    const r=slow?.7:(PR[S.rate]||.88);AUD.onended=ok;AUD.onerror=bad;AUD.src="audio/"+acc+"/"+k+".mp3";AUD.defaultPlaybackRate=r;AUD.playbackRate=r;AUD.onloadedmetadata=AUD.onplaying=()=>{if(Math.abs(AUD.playbackRate-r)>.01)AUD.playbackRate=r};
     try{const p=AUD.play();if(p&&p.catch)p.catch(bad)}catch(e){bad()}return}
-  speakSynth(t,done)}
-function speakSynth(text,done){const end=()=>{if(done)done()};if(!synth){end();return}
-  try{if(!voices.length)loadVoices();const u=new SpeechSynthesisUtterance(text);const v=voice();if(v)u.voice=v;u.lang=v?v.lang:S.accent;u.rate=S.rate;u.volume=1;
+  speakSynth(t,done,slow)}
+function speakSynth(text,done,slow){const end=()=>{if(done)done()};if(!synth){end();return}
+  try{if(!voices.length)loadVoices();const u=new SpeechSynthesisUtterance(text);const v=voice();if(v)u.voice=v;u.lang=v?v.lang:S.accent;u.rate=slow?.6:S.rate*.95;u.volume=1;
     let fin=false;const f=()=>{if(fin)return;fin=true;clearTimeout(wd);if(curU===u)curU=null;end()};u.onend=f;u.onerror=f;curU=u;
     const wd=setTimeout(f,2500+text.split(" ").length*700/S.rate);
     if(synth.speaking||synth.pending){synth.cancel();setTimeout(()=>{if(curU===u)synth.speak(u)},120)}else synth.speak(u);
@@ -328,8 +330,14 @@ const KBTIP=`<p class="small muted">Tipp: Damit das iPhone dein Englisch richtig
 const NUM={"0":"zero","1":"one","2":"two","3":"three","4":"four","5":"five","6":"six","7":"seven","8":"eight","9":"nine","10":"ten","11":"eleven","12":"twelve","20":"twenty","40":"forty","50":"fifty"};
 const CONTR={"it's":"it is","i'm":"i am","don't":"do not","isn't":"is not","can't":"cannot","i'll":"i will","that's":"that is","what's":"what is","let's":"let us","you're":"you are","we're":"we are","they're":"they are","doesn't":"does not","didn't":"did not","i've":"i have","won't":"will not","there's":"there is","where's":"where is","i'd":"i would","he's":"he is","she's":"she is","aren't":"are not","wasn't":"was not"};
 function words(x){return x.toLowerCase().replace(/[’`]/g,"'").replace(/[^a-z0-9' ]/g," ").split(/\s+/).filter(Boolean).map(w=>CONTR[w]||NUM[w]||w).join(" ").split(" ").filter(Boolean)}
-function compare(target,heard){const said=words(heard);const marks=target.split(" ").map(tk=>{const ws=words(tk);if(!ws.length)return[tk,true];let ok=true;ws.forEach(w=>{const i=said.indexOf(w);if(i>=0)said.splice(i,1);else ok=false});return[tk,ok]});
-  return{marks,score:marks.filter(m=>m[1]).length/marks.length,heard}}
+const FW=new Set("a an the to at of in on is are am be and or for with it its i you he she we they me him her us them my your his our their do does did not this that so but by as from was were will would can".split(" "));
+const HOM={too:"to",two:"to",their:"there",four:"for",won:"one",right:"write",hear:"here",sea:"see",buy:"by",bye:"by",ok:"okay"};
+const hn=w=>HOM[w]||w;
+function compare(target,heard,strict){const said=words(heard).map(hn);const marks=target.split(" ").map(tk=>{const ws=words(tk).map(hn);if(!ws.length)return[tk,true,false];let ok=true;
+    ws.forEach(w=>{let i=said.indexOf(w);if(i<0&&w.length>=4)i=said.findIndex(x=>x.length>=3&&lev(x,w)<=1);if(i>=0)said.splice(i,1);else ok=false});
+    const small=ws.every(w=>FW.has(w));return[tk,ok,!ok&&small&&!strict]});
+  const counted=marks.filter(m=>!words(m[0]).every(w=>FW.has(hn(w)))||strict),base=counted.length?counted:marks;
+  return{marks,score:base.filter(m=>m[1]).length/base.length,heard}}
 function listen(target,cb){if(ui.listening){stopRec(false);return}if(ui.thinking)return;if(!hasSR()){cb(null);return}
   try{if(synth)synth.cancel()}catch(e){}try{AUD.pause()}catch(e){}
   loadSTT().catch(()=>{});
@@ -453,8 +461,12 @@ function finishPlace(a){a.end=true;hush();const res=Math.min(MAXLV,a.passed+1),t
   a.wrong.forEach(id=>{S.cards[id]={box:1,due:t}});
   a.res=res;S.level=Math.max(S.level,res);S.placed=true;S.hist=[];save();checkBadges();if(res>1){confetti();beep("win")}render()}
 function startReview(){const due=shuffle(ALL.filter(isDue)).slice(0,15);if(!due.length){startQuiz();return}newSes("review","Wiederholung",due.map(id=>mk(id,pickType())))}
-function startQuiz(){const p=learnedPool(6);newSes("quiz","Gemischtes Quiz",shuffle(p).slice(0,10).map(id=>mk(id,pickType())))}
-function blitzItem(){const p=learnedPool(8),w=pick(p);return mk(w,Math.random()<.5?"ende":"deen")}
+function freshPick(list,n,key){const rec=new Set(S[key]||[]);let a=shuffle(list.filter(x=>!rec.has(x)));if(a.length<n)a=a.concat(shuffle(list.filter(x=>rec.has(x))));return a.slice(0,n)}
+function remember(key,items,max){S[key]=(S[key]||[]).concat(items).slice(-max);save()}
+function levelIds(){const L=S.level,cur=ALL.filter(id=>lvOf(id)===L),prev=ALL.filter(id=>lvOf(id)===L-1);return{cur,prev}}
+function quizIds(n){const {cur,prev}=levelIds(),k=prev.length?Math.round(n*.65):n,ids=freshPick(cur,k,"recQ").concat(freshPick(prev,n-k,"recQ"));remember("recQ",ids,150);return shuffle(ids)}
+function startQuiz(){newSes("quiz",`Quiz · Stufe ${S.level}`,quizIds(12).map(id=>mk(id,pickType())))}
+function blitzItem(){const {cur,prev}=levelIds(),w=quizIds(1)[0]||pick(cur.concat(prev));return mk(w,Math.random()<.5?"ende":"deen")}
 function startBlitz(){newSes("blitz","Blitzrunde",[blitzItem()],{score:0,deadline:Date.now()+60000});ui.timer=setInterval(tickTimer,200)}
 function stopTimer(){if(ui.timer){clearInterval(ui.timer);ui.timer=null}}
 function tickTimer(){const a=ui.act;if(!a){stopTimer();return}
@@ -558,6 +570,7 @@ function vProfile(){const r=rate(),learned=ALL.filter(seen).length,solid=ALL.fil
      <span>Ersatzstimme: ${(()=>{const v=voice();return v?esc(v.name+" ("+v.lang+")"):"Standard"})()} · ${voices.filter(v=>(v.lang||"").indexOf("en")===0).length} englische Stimmen</span>
      <span>Spracherkennung (Whisper, auf dem Handy): ${!hasSR()&&!S.srOff?"nicht verfügbar":S.srOff?"ausgeschaltet":sttState==="ready"?"geladen":sttState==="loading"?"wird geladen":sttState==="error"?"Laden fehlgeschlagen":"wird beim ersten Sprechen geladen"} · ${standalone()?"installierte App":"Browser"}</span>
      ${S.srOff?`<button class="btn" data-a="srOn">App-Mikrofon noch einmal probieren</button>`:hasSR()&&sttState!=="ready"?`<button class="btn" data-a="sttLoad"${sttState==="loading"?" disabled":""}>Spracherkennung jetzt laden (im WLAN)</button><span id="sttp"></span>`:""}</div></details>
+   <p class="small muted">Tipp: Zweimal hintereinander auf einen Lautsprecher tippen spielt den Satz langsamer ab.</p>
    <p class="small muted">Kein Ton? Prüfe die Lautstärke. Steht der Lautlos-Schalter auf lautlos, ist nur die Ersatzstimme stumm.</p>
    <p class="small muted">Dein Fortschritt bleibt auf diesem Handy gespeichert. Wenn du die App löschst, ist er weg.</p>
    ${ui.resetAsk?`<div class="setting"><span>Wirklich alles löschen?</span><span class="row"><button class="btn bad" data-a="resetYes">Löschen</button><button class="btn" data-a="resetNo">Nein</button></span></div>`:`<div><button class="btn link" data-a="resetAsk">Fortschritt löschen</button></div>`}
@@ -600,7 +613,7 @@ function vSes(a){
   if(a.kind==="place"&&!fin)h+=`<div class="center" style="display:flex;justify-content:center"><button class="btn link" data-a="idk">Weiß ich nicht</button></div>`;
   if(fin&&!blitz){const ok=it.state==="ok",whole=it.type==="build"||it.type==="sent",en=whole?w[2]:w[0],de=whole?w[3]:w[1];
     h+=`<div class="foot ${ok?"ok":"no"}"><div class="wrap"><div class="row between"><span class="verdict">${ok?(it.near?"Fast perfekt!":it.typo?"Richtig! Kleiner Tippfehler.":pick(["Richtig!","Super!","Klasse!","Genau!"])):"Nicht ganz."}</span>${ok&&a.kind!=="place"?`<span class="chip star">+${a.combo>=5?15:10} ⭐</span>`:""}</div>
-      ${it.marks?`<p class="marks" style="background:var(--card);border-radius:10px;padding:.35rem .6rem">${it.marks.map(m=>`<span class="${m[1]?"hit":"gap"}">${esc(m[0])}</span>`).join(" ")}</p>`:""}${ok&&!it.typo&&!it.near?"":`<div class="row"><span class="grow"><strong class="en">${esc(en)}</strong><br>${esc(de)}</span>${spk(en)}</div>`}
+      ${it.marks?`<p class="marks" style="background:var(--card);border-radius:10px;padding:.35rem .6rem">${it.marks.map(m=>`<span class="${m[1]?"hit":m[2]?"soft":"gap"}">${esc(m[0])}</span>`).join(" ")}</p>`:""}${ok&&!it.typo&&!it.near?"":`<div class="row"><span class="grow"><strong class="en">${esc(en)}</strong><br>${esc(de)}</span>${spk(en)}</div>`}
       <button class="btn ${ok?"ok":"bad"} block" data-a="next">Weiter</button></div></div>`}
   return h}
 function endv(mood,title,sub,tiles,btns){return `<div class="endv">${tilly(mood,130)}<h2>${title}</h2><p class="muted">${sub}</p>
@@ -628,9 +641,9 @@ function vGram(a){const g=G[a.i];
   return h}
 /* ---- Wortpaare ---- */
 function startPairs(){stopTimer();hush();ui.act={type:"pairs",round:1,rounds:3,used:[],sel:{},done:[],bad:null,mist:0,t0:Date.now(),end:false};newRound(ui.act);go();ui.timer=setInterval(tickTimer,500)}
-function newRound(a){const p=shuffle(learnedPool(15).filter(id=>a.used.indexOf(id)<0)),ids=[];
+function newRound(a){const {cur,prev}=levelIds(),p=freshPick(cur.concat(prev).filter(id=>a.used.indexOf(id)<0),40,"recQ"),ids=[];
   for(const id of p){if(ids.length>=5)break;if(!ids.some(x=>W(x)[0]===W(id)[0]||W(x)[1]===W(id)[1]))ids.push(id)}
-  a.used=a.used.concat(ids);a.L=shuffle(ids);a.R=shuffle(ids);a.done=[];a.sel={};a.bad=null}
+  a.used=a.used.concat(ids);remember("recQ",ids,150);a.L=shuffle(ids);a.R=shuffle(ids);a.done=[];a.sel={};a.bad=null}
 function vPairs(a){if(a.end)return endv(a.mist?"happy":"wow",a.mist?"Alle Paare gefunden!":"Perfekt, ohne Fehler!",`Zeit: ${fmtTime(a.ms)} · Fehler: ${a.mist}`,[["+"+a.xp,"Punkte"],[fmtTime(a.ms),"Zeit"],[fmtTime(S.pairs),"Bestzeit"]],`<button class="btn pri block" data-a="pairs">Noch einmal</button><button class="btn block" data-a="exit">Fertig</button>`);
   const cell=(id,side)=>{const gone=a.done.indexOf(id)>=0,sel=a.sel[side]===id,bad=a.bad&&a.bad[side]===id;
     return `<button class="pc ${side}${gone?" gone":""}${sel?" sel":""}${bad?" bad":""}" data-a="pc" data-s="${side}" data-id="${id}"${gone?" disabled":""}>${esc(W(id)[side==="l"?0:1])}</button>`};
@@ -667,7 +680,7 @@ function vDlg(a){const d=D[a.i];
   if(a.end)return endv("wow","Gespräch geschafft!",`${a.first} von ${d.st.length} Antworten auf Anhieb richtig.`,[["+"+a.xp,"Punkte"],[a.first+"/"+d.st.length,"auf Anhieb"],[Object.keys(S.dlg).length,"Gespräche"]],`<button class="btn pri block" data-a="dlg" data-i="${a.i}">Noch einmal</button><button class="btn block" data-a="exit">Fertig</button>`);
   let h=`<div class="actbar"><button class="x" data-a="exit" aria-label="Beenden">✕</button><div class="bar"><i style="width:${(a.step+(a.answered?1:0))/d.st.length*100}%"></i></div><span style="font-size:1.6rem">${d.ic}</span></div><div class="chat">`;
   a.log.forEach((m,k)=>{h+=m.who==="npc"?`<div class="msg npc"><div class="line"><span class="grow">${esc(m.en)}</span>${spk(m.en)}</div>${m.show?`<span>${esc(m.de)}</span>`:`<button class="btn link" style="align-self:flex-start;min-height:1.8rem" data-a="dtr" data-k="${k}">Übersetzung zeigen</button>`}</div>`
-    :`<div class="msg me"><span>${esc(m.en)}</span><span class="sub">${esc(m.de)}</span>${m.marks?`<span class="marks">${m.marks.map(x=>`<span class="${x[1]?"hit":"gap"}">${esc(x[0])}</span>`).join(" ")}<br><span class="small">${m.score>=.8?"✓ Gut ausgesprochen!":"Fast. Versuch es noch einmal."}</span></span>`:""}</div>`});
+    :`<div class="msg me"><span>${esc(m.en)}</span><span class="sub">${esc(m.de)}</span>${m.marks?`<span class="marks">${m.marks.map(x=>`<span class="${x[1]?"hit":x[2]?"soft":"gap"}">${esc(x[0])}</span>`).join(" ")}<br><span class="small">${m.score>=.8?"✓ Gut ausgesprochen!":"Fast. Versuch es noch einmal."}</span></span>`:""}</div>`});
   h+=`</div>`;
   if(!a.answered)h+=`<p class="prompt" style="font-size:1.15rem">Was antwortest du?</p><div class="opts">${a.opts.map((o,k)=>{const no=a.wrong.indexOf(k)>=0;return `<button class="opt en${no?" wrong shake":""}" data-a="dopt" data-k="${k}"${no?" disabled":""}><span>${esc(o.en)}</span><span>${no?"✗":""}</span></button>`}).join("")}</div>${a.wrong.length?`<p class="small muted">Das passt hier nicht. Lies die Frage noch einmal oder zeig die Übersetzung an.</p>`:""}`;
   else h+=`<div class="foot ok"><div class="wrap"><div class="row between"><span class="verdict">${a.wrong.length?"Richtig!":"Super, auf Anhieb!"}</span><span class="chip star">+${a.wrong.length?5:10} ⭐</span></div>
@@ -675,13 +688,20 @@ function vDlg(a){const d=D[a.i];
   return h}
 
 /* ---- Nachsprechen ---- */
-function startRep(){hush();ui.act={type:"rep",id:pick(learnedPool(6)),res:null,ok:false,draft:""};go();speak(W(ui.act.id)[2])}
+function repPool(){const L=S.level,lo=Math.max(1,L-1),out=[],inLv=x=>x.lv>=lo&&x.lv<=L;
+  T.forEach(t=>{if(inLv(t))t.w.forEach(w=>out.push([w[2],w[3]]))});
+  R.forEach(r=>{if(inLv(r))r.s.forEach(x=>out.push([x[0],x[1]]))});
+  WT.forEach(r=>{if(inLv(r))r.s.forEach(x=>out.push([x[0].replace(/_/g," "),x[1]]))});
+  D.forEach(d=>{if(inLv(d))d.st.forEach(st=>{out.push([st[0],st[1]]);const o=st[2][st[3]];out.push([o[0],o[1]])})});
+  return out.filter(x=>x[0].split(" ").length>=3&&x[0].length<=110)}
+function startRep(){hush();const pool=repPool(),p=freshPick(pool.map(x=>x[0]),1,"recR")[0],x=pool.find(y=>y[0]===p)||["Hello, how are you?","Hallo, wie geht es dir?"];
+  remember("recR",[x[0]],200);ui.act={type:"rep",en:x[0],de:x[1],res:null,ok:false,draft:""};go();speak(x[0])}
 function repResult(a,res){if(!res)return;a.res=res;if(res.score>=.8){beep("ok");if(!a.ok){a.ok=true;S.reps++;gain(10)}}else beep("bad");record(res.score>=.8);render()}
-function vRep(a){const w=W(a.id),r=a.res;
+function vRep(a){const w=["","",a.en,a.de],r=a.res;
   let h=`<div class="actbar"><button class="x" data-a="exit" aria-label="Beenden">✕</button><h2 class="grow">Nachsprechen</h2><span class="chip star">🎤 ${S.reps}</span></div>
   <div class="qcard"><span class="tag">Sprich diesen Satz</span><div class="row" style="align-self:stretch"><span class="word grow" style="font-size:1.7rem">${esc(w[2])}</span>${spk(w[2])}</div><span>${esc(w[3])}</span></div>`;
   if(r)h+=`<div class="card" style="display:flex;flex-direction:column;gap:.5rem"><p class="verdict" style="color:${r.score>=.8?"var(--ok2)":"var(--bad2)"}">${r.score===1?"Perfekt verstanden!":r.score>=.8?"Fast perfekt!":"Noch nicht ganz."}</p>
-    <p class="marks" style="font-size:1.15rem">${r.marks.map(m=>`<span class="${m[1]?"hit":"gap"}">${esc(m[0])}</span>`).join(" ")}</p><p class="small muted">Verstanden wurde: „${esc(r.heard)}“</p></div>
+    <p class="marks" style="font-size:1.15rem">${r.marks.map(m=>`<span class="${m[1]?"hit":m[2]?"soft":"gap"}">${esc(m[0])}</span>`).join(" ")}</p><p class="small muted">Verstanden wurde: „${esc(r.heard)}“</p></div>
     <div class="btns"><button class="btn" data-a="repAgain">Nochmal</button><button class="btn pri" data-a="rep">Nächster Satz</button></div>`;
   else{if(hasSR())h+=`<div class="center" style="display:flex;flex-direction:column;gap:.5rem;padding:.6rem 0"><button class="mic${ui.listening?" on":""}" data-a="rmic" aria-label="Mikrofon"${ui.thinking?" disabled":""}>${ui.thinking?"⏳":MIC}</button><span class="muted">${sttNote()||"Tippen, sprechen, nochmal tippen"}</span><span class="small muted" id="sttp"></span></div>`;
     h+=`<p class="small muted">${hasSR()?"Oder ins Feld tippen und":"Tippe ins Feld und nutze"} die Mikrofon-Taste der Tastatur${hasSR()?" nutzen":""}:</p><div class="say"><input id="say" type="text" lang="en" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="off" placeholder="Hier erscheint dein Satz" value="${esc(a.draft)}" aria-label="Dein Satz"><button class="btn pri" data-a="rcheck">Prüfen</button></div>${hasSR()?"":KBTIP}`}
@@ -691,7 +711,7 @@ function dres(a,m,res){m.marks=res.marks;m.score=res.score;if(res.score>=.8){bee
 function finishGram(a){a.end=true;hush();const n=a.q.length,st=a.right>=n-1?3:a.right>=n-2?2:a.right>=n/2?1:0;if(st>(S.gram[a.i]||0))S.gram[a.i]=st;a.xp+=st*5;gain(st*5);save();checkBadges();if(st>=2){confetti();beep("win")}render()}
 /* ================= Aktionen ================= */
 const ACT={
-  say(d){speak(d.s)},
+  say(d){const now=Date.now(),slow=lastSay.t===d.s&&now-lastSay.at<8000;lastSay={t:slow?"":d.s,at:now};if(slow)toast("🐢 Langsamer");speak(d.s,null,slow)},
   topic(d){startLesson(+d.i)},
   review(){startReview()},quiz(){startQuiz()},blitz(){startBlitz()},pairs(){startPairs()},
   text(d){hush();ui.act={type:"text",i:+d.i,open:{},ans:{},reading:false};go()},
@@ -709,7 +729,7 @@ const ACT={
   gintro(){ui.act.intro=true;ui.act.back=true;go()},
   gopt(d){const a=ui.act,it=a.q[a.pos];if(it.state!==null)return;it.chosen=+d.k;const ok=it.opts[it.chosen]===it.ok;it.state=ok?"ok":"no";record(ok);beep(ok?"ok":"bad");if(ok){a.right++;a.xp+=10;gain(10)}render();if(ok)speak(it.s.replace("___",it.ok))},
   gnext(){const a=ui.act;a.pos++;if(a.pos>=a.q.length)finishGram(a);else{render();window.scrollTo(0,0)}},
-  tcheck(){const a=ui.act,it=a.q[a.pos];if(it.state!==null)return;const b=document.getElementById("typ"),v=((b&&b.value)||it.val||"").trim();if(!v)return;it.val=v;if(it.type==="sent"){const c=compare(W(it.id)[2],v),ok=c.score>=.85;it.marks=c.marks.map((m,k)=>m);it.near=ok&&c.score<1;if(!ok)it.marks=c.marks;resolve(it,ok);return}const r=typeOk(W(it.id)[0],v);it.typo=r===1;resolve(it,r>0)},
+  tcheck(){const a=ui.act,it=a.q[a.pos];if(it.state!==null)return;const b=document.getElementById("typ"),v=((b&&b.value)||it.val||"").trim();if(!v)return;it.val=v;if(it.type==="sent"){const c=compare(W(it.id)[2],v,true),ok=c.score>=.85;it.marks=c.marks.map((m,k)=>m);it.near=ok&&c.score<1;if(!ok)it.marks=c.marks;resolve(it,ok);return}const r=typeOk(W(it.id)[0],v);it.typo=r===1;resolve(it,r>0)},
   noPlace(){S.placed=true;save();render()},
   idk(){const a=ui.act,it=a.q[a.pos];if(it.state!==null)return;resolve(it,false)},
   opt(d){const a=ui.act,it=a.q[a.pos];if(it.state!==null)return;it.chosen=+d.k;resolve(it,it.opts[it.chosen]===it.id)},
@@ -735,9 +755,9 @@ const ACT={
     listen(m.en,res=>{if(!res){render();return}dres(a,m,res)})},
   dcheck(){const a=ui.act,m=a.log[a.log.length-1],b=document.getElementById("say"),v=((b&&b.value)||a.draft||"").trim();if(!v)return;a.draft="";dres(a,m,compare(m.en,v))},
   dnext(){const a=ui.act;hush();a.draft="";a.step++;if(a.step>=D[a.i].st.length){a.end=true;S.dlg[a.i]=true;a.xp+=20;gain(20);save();checkBadges();confetti();beep("win");go()}else{setStep(a);render();window.scrollTo(0,document.body.scrollHeight)}},
-  rmic(){const a=ui.act;listen(W(a.id)[2],res=>{if(res)repResult(a,res);else render()})},
-  rcheck(){const a=ui.act,b=document.getElementById("say"),v=((b&&b.value)||a.draft).trim();if(!v)return;a.draft="";repResult(a,compare(W(a.id)[2],v))},
-  repAgain(){const a=ui.act;a.res=null;render();speak(W(a.id)[2])},
+  rmic(){const a=ui.act;listen(a.en,res=>{if(res)repResult(a,res);else render()})},
+  rcheck(){const a=ui.act,b=document.getElementById("say"),v=((b&&b.value)||a.draft).trim();if(!v)return;a.draft="";repResult(a,compare(a.en,v))},
+  repAgain(){const a=ui.act;a.res=null;a.draft="";render();speak(a.en)},
   set(d){S[d.k]=d.k==="accent"?d.v:d.k==="sound"?d.v==="true":+d.v;save();render();if(d.k==="accent"||d.k==="rate")speak("Hello! How are you today?")},
   noInstall(){S.noInstall=true;save();render()},
   srOn(){S.srOff=false;save();render()},
