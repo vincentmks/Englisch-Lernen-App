@@ -453,8 +453,8 @@ const reEsc=x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
 const norm=x=>x.toLowerCase().replace(/[’`]/g,"'").replace(/[^a-z' ]/g," ").replace(/\s+/g," ").trim();
 function lev(a,b){const m=a.length,n=b.length;if(Math.abs(m-n)>1)return 2;const d=Array.from({length:m+1},(_,i)=>[i]);for(let j=1;j<=n;j++)d[0][j]=j;
   for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[m][n]}
-function typeOk(target,v){const t=norm(target),x=norm(v);if(!x)return 0;const vars=[t,t.replace(/^to /,""),t.replace(/^(the|a|an) /,"")];
-  if(vars.indexOf(x)>=0)return 2;return vars.some(y=>y.length>=5&&lev(y,x)<=1)?1:0}
+function typeOk(target,v){const strip=z=>z.replace(/^(the|a|an|to) /,""),t=strip(norm(target)),x=strip(norm(v));if(!x)return 0;
+  if(t===x)return 2;return t.length>=5&&lev(t,x)<=1?1:0}
 function mk(id,type){const w=W(id);
   if(type==="build"){const tk=w[2].split(" ");if(tk.length>=3&&tk.length<=(hiRate()?9:7)){let bank;do{bank=shuffle(tk.map((t,i)=>({t,i})))}while(bank.every((b,k)=>b.i===k));return{id,type,bank,picked:[],state:null}}type="ende"}
   if(type==="type"||type==="sent"||type==="speak")return{id,type,val:"",state:null};
