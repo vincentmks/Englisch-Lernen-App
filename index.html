@@ -327,7 +327,7 @@ const MIC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wid
 const spk=t=>canSpeak()?`<button class="spk" data-a="say" data-s="${esc(t)}" aria-label="Vorlesen">${SPK}</button>`:"";
 
 /* Spracherkennung (im Browser eingebaut) */
-const hasSR=()=>!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder)&&!S.srOff;
+const hasSR=()=>!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder);
 const KBTIP=`<p class="small muted">Tipp: Damit das iPhone dein Englisch richtig aufschreibt, unter Einstellungen → Allgemein → Tastatur → Tastaturen eine <b>englische Tastatur</b> hinzufügen. Beim Sprechen dann mit der 🌐-Taste auf Englisch wechseln und auf das Mikrofon der Tastatur tippen.</p>`;
 const NUM={"0":"zero","1":"one","2":"two","3":"three","4":"four","5":"five","6":"six","7":"seven","8":"eight","9":"nine","10":"ten","11":"eleven","12":"twelve","20":"twenty","40":"forty","50":"fifty"};
 const CONTR={"it's":"it is","i'm":"i am","don't":"do not","isn't":"is not","can't":"cannot","i'll":"i will","that's":"that is","what's":"what is","let's":"let us","you're":"you are","we're":"we are","they're":"they are","doesn't":"does not","didn't":"did not","i've":"i have","won't":"will not","there's":"there is","where's":"where is","i'd":"i would","he's":"he is","she's":"she is","aren't":"are not","wasn't":"was not"};
@@ -340,7 +340,7 @@ function compare(target,heard,strict){const said=words(heard).map(hn);const mark
     const small=ws.every(w=>FW.has(w));return[tk,ok,!ok&&small&&!strict]});
   const counted=marks.filter(m=>!words(m[0]).every(w=>FW.has(hn(w)))||strict),base=counted.length?counted:marks;
   return{marks,score:base.filter(m=>m[1]).length/base.length,heard}}
-function listen(target,cb){if(ui.listening){stopRec(false);return}if(ui.thinking)return;if(!hasSR()){cb(null);return}
+function listen(target,cb){if(ui.listening){stopRec(false);return}if(ui.thinking)return;if(!hasSR()){cb(null);return}if(S.srOff){S.srOff=false;save()}
   try{if(synth)synth.cancel()}catch(e){}try{AUD.pause()}catch(e){}
   loadSTT().catch(()=>{});
   navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true}}).then(st=>{
@@ -351,13 +351,13 @@ function listen(target,cb){if(ui.listening){stopRec(false);return}if(ui.thinking
       transcribe(new Blob(ch,{type:mt||"audio/mp4"})).then(text=>{ui.thinking=false;if(ui.act)ui.act.draft=text||"";if(!text){toast("Ich habe nichts verstanden. Sprich etwas lauter und deutlicher.");render();return}cb(compare(target,text))})
         .catch(e=>{ui.thinking=false;console.warn(e);toast(sttState==="error"?"Die Spracherkennung konnte nicht geladen werden. Prüfe die Internetverbindung.":"Die Aufnahme konnte nicht ausgewertet werden.");render()})};
     mr.start();rec.to=setTimeout(()=>stopRec(false),12000);render()
-  }).catch(e=>{console.warn(e);S.srOff=true;save();toast("Das Mikrofon ist nicht erlaubt. Erlaube es in den iPhone-Einstellungen oder nutze das Textfeld.");render()})}
+  }).catch(e=>{console.warn(e);toast("Das Mikrofon ist nicht erlaubt. Erlaube es in den iPhone-Einstellungen oder nutze das Textfeld.");render()})}
 function stopRec(cancel){const r=ui.rec;if(!r)return;ui.rec=null;r.cancel=!!cancel;try{if(r.mr.state!=="inactive")r.mr.stop();else{r.st.getTracks().forEach(t=>t.stop());ui.listening=false}}catch(e){ui.listening=false}}
 /* Whisper (läuft komplett auf dem Handy) */
 let sttPipe=null,sttLoading=null,sttState="idle",sttPct=0;const sttFiles={};
 const BUSY="teatime.sttBusy";const busyOn=()=>{try{localStorage.setItem(BUSY,String(Date.now()))}catch(e){}},busyOff=()=>{try{localStorage.removeItem(BUSY)}catch(e){}};
-(()=>{let b=null;try{b=localStorage.getItem(BUSY)}catch(e){}if(b&&Date.now()-(+b)<15*60000){busyOff();S.srOff=true;S.sttCrash=(S.sttCrash||0)+1;save();
-  setTimeout(()=>toast("Die Spracherkennung war zu schwer für das Handy. Ich nutze jetzt das Tastatur-Mikrofon."),800)}else busyOff()})();
+(()=>{let b=null;try{b=localStorage.getItem(BUSY)}catch(e){}if(b&&Date.now()-(+b)<15*60000){busyOff();S.sttCrash=(S.sttCrash||0)+1;save();
+  setTimeout(()=>toast("Die Spracherkennung ist beim letzten Mal abgestürzt. Passiert das wieder, nutze das Tastatur-Mikrofon."),800)}else busyOff()})();
 function loadSTT(){if(sttPipe)return Promise.resolve(sttPipe);if(sttLoading)return sttLoading;sttState="loading";busyOn();let last=Date.now();const wd=setInterval(()=>{if(sttState!=="loading"){clearInterval(wd);return}if(Date.now()-last>90000){clearInterval(wd);sttState="error";sttLoading=null;busyOff();toast("Das Laden dauert zu lange. Versuch es später im WLAN noch einmal.");render()}},5000);
   sttLoading=import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.2").then(T=>{T.env.allowLocalModels=false;
     return T.pipeline("automatic-speech-recognition","Xenova/whisper-tiny.en",{dtype:"q8",device:"wasm",progress_callback:p=>{
