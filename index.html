@@ -207,6 +207,7 @@ section{display:flex;flex-direction:column;gap:.75rem}
 .wtools{display:flex;gap:.5rem;align-items:center}
 @media (prefers-reduced-motion:no-preference){.w.f{animation:flip .25s ease-out}@keyframes flip{from{transform:rotateX(90deg)}to{transform:none}}}
 .marks .soft{color:var(--muted)}
+.marks .near{color:#a06d00;text-decoration:underline dotted}
 .foot.mid{background:#fff3cf;border-color:var(--sun2)}
 .foot.mid .verdict{color:#8a6100}
 .marks .hit{color:var(--ok2);font-weight:700}.marks .gap{color:var(--bad2);text-decoration:underline}
@@ -332,14 +333,24 @@ const KBTIP=`<p class="small muted">Tipp: Damit das iPhone dein Englisch richtig
 const NUM={"0":"zero","1":"one","2":"two","3":"three","4":"four","5":"five","6":"six","7":"seven","8":"eight","9":"nine","10":"ten","11":"eleven","12":"twelve","20":"twenty","40":"forty","50":"fifty"};
 const CONTR={"it's":"it is","i'm":"i am","don't":"do not","isn't":"is not","can't":"cannot","i'll":"i will","that's":"that is","what's":"what is","let's":"let us","you're":"you are","we're":"we are","they're":"they are","doesn't":"does not","didn't":"did not","i've":"i have","won't":"will not","there's":"there is","where's":"where is","i'd":"i would","he's":"he is","she's":"she is","aren't":"are not","wasn't":"was not"};
 function words(x){return x.toLowerCase().replace(/[’`]/g,"'").replace(/[^a-z0-9' ]/g," ").split(/\s+/).filter(Boolean).map(w=>CONTR[w]||NUM[w]||w).join(" ").split(" ").filter(Boolean)}
-const FW=new Set("a an the to at of in on is are am be and or for with it its i you he she we they me him her us them my your his our their do does did not this that so but by as from was were will would can".split(" "));
-const HOM={large:"big",start:"begin",too:"to",two:"to",their:"there",four:"for",won:"one",right:"write",hear:"here",sea:"see",buy:"by",bye:"by",ok:"okay"};
-const hn=w=>HOM[w]||w;
-function compare(target,heard,strict){const said=words(heard).map(hn);const marks=target.split(" ").map(tk=>{const ws=words(tk).map(hn);if(!ws.length)return[tk,true,false];let ok=true;
-    ws.forEach(w=>{let i=said.indexOf(w);if(i<0&&w.length>=4)i=said.findIndex(x=>x.length>=3&&lev(x,w)<=1);if(i>=0)said.splice(i,1);else ok=false});
-    const small=ws.every(w=>FW.has(w));return[tk,ok,!ok&&small&&!strict]});
-  const counted=marks.filter(m=>!words(m[0]).every(w=>FW.has(hn(w)))||strict),base=counted.length?counted:marks;
-  return{marks,score:base.filter(m=>m[1]).length/base.length,heard}}
+const FW=new Set("a an the to at of in on is are am be and or for with it its i you he she we they me him her us them my your his our their do does did not this that so but by as from was were will would can have has had".split(" "));
+/* Gleichwertige Wörter (britisch/amerikanisch, Synonyme, Gleichklang) */
+const SYN={};"big large|small little|begin start|buy purchase|shop store|film movie|holiday vacation|holidays vacation|flat apartment|mobile cellphone|maybe perhaps|ill sick|kid child|kids children|mum mother mom|dad father|toilet bathroom restroom|sofa couch|afraid scared frightened|happy glad|nice lovely pleasant|great wonderful fantastic brilliant|okay ok alright|fast quick quickly|speak talk|city town|phone call|rubbish trash garbage|lorry truck|near close|dinner supper|to too two|there their|for four|here hear|see sea|autumn fall".split("|").forEach(g=>{const w=g.split(" ");w.forEach(x=>{if(!SYN[x])SYN[x]=w[0]})});
+/* Unregelmäßige Verben: Vergangenheit und Partizip gelten als gleichwertig (I saw = I have seen) */
+const PAST={},BASE={};"go went gone|see saw seen|eat ate eaten|take took taken|give gave given|write wrote written|speak spoke spoken|come came come|do did done|buy bought bought|have had had|make made made|find found found|meet met met|tell told told|think thought thought|know knew known|drink drank drunk|begin began begun|break broke broken|forget forgot forgotten|get got gotten|leave left left|lose lost lost|pay paid paid|say said said|sell sold sold|send sent sent|sleep slept slept|stand stood stood|understand understood understood|wear wore worn|run ran run|sing sang sung|swim swam swum|ride rode ridden|fly flew flown|drive drove driven|fall fell fallen|feel felt felt|keep kept kept|bring brought brought|catch caught caught|teach taught taught|be was been|win won won|spend spent spent|build built built|hold held held|choose chose chosen|grow grew grown|throw threw thrown|draw drew drawn|wake woke woken|hide hid hidden|steal stole stolen|forgive forgave forgiven".split("|").forEach(g=>{const [b0,p0,pp]=g.split(" ");[p0,pp].forEach(x=>{if(x!==b0){BASE[x]=b0;PAST[x]="~"+b0}})});PAST.were="~be";BASE.were="be";
+const PHRW=[[["would","like"],["want"]],[["have","got"],["have"]],[["has","got"],["has"]],[["a","lot","of"],["many"]],[["lots","of"],["many"]],[["cannot"],["can","not"]]];
+const canon=w=>PAST[w]||SYN[w]||w;
+function lemma(w){if(PAST[w])return PAST[w].slice(1);let x=w;if(BASE[x])x=BASE[x];else if(/ie[sd]$/.test(x))x=x.slice(0,-3)+"y";else if(/(ches|shes|sses|xes|oes)$/.test(x))x=x.slice(0,-2);else if(/ing$/.test(x)&&x.length>5)x=x.slice(0,-3);else if(/ed$/.test(x)&&x.length>4)x=x.slice(0,-2);else if(/s$/.test(x)&&x.length>3&&!/ss$/.test(x))x=x.slice(0,-1);x=SYN[x]||x;return x.replace(/e$/,"")}
+function prepSeq(text){const out=[];String(text).split(" ").forEach((tk,ti)=>words(tk).forEach(w=>out.push({w,ti})));
+  PHRW.forEach(([f,t])=>{for(let i=0;i+f.length<=out.length;i++)if(f.every((x,k)=>out[i+k].w===x)){const ti=out[i].ti;out.splice(i,f.length,...t.map(w=>({w,ti})))}});return out}
+/* Vergleich: grün = gleich oder gleichwertig, halb (gelb) = richtiges Wort in falscher Form, kleine Wörter zählen nicht */
+function compare(target,heard,strict){const said=prepSeq(heard).map(x=>({c:canon(x.w),l:lemma(x.w)})),toks=target.split(" "),st=toks.map(()=>({any:false,miss:false,half:false,small:true}));
+  prepSeq(target).forEach(({w,ti})=>{const o=st[ti];o.any=true;if(!FW.has(w))o.small=false;const c=canon(w),l=lemma(w);
+    let i=said.findIndex(x=>x.c===c);if(i<0&&c.length>=4&&c[0]!=="~")i=said.findIndex(x=>x.c.length>=3&&x.c[0]!=="~"&&lev(x.c,c)<=1);if(i>=0){said.splice(i,1);return}
+    const j=said.findIndex(x=>x.l===l);if(j>=0){said.splice(j,1);o.half=true;return}o.miss=true});
+  const marks=toks.map((tk,ti)=>{const o=st[ti];if(!o.any)return[tk,true,false,false,true];const full=!o.miss&&!o.half,half=!o.miss&&o.half;return[tk,full,!full&&!half&&o.small&&!strict,half,o.small]});
+  const counted=marks.filter(m=>strict||!m[4]),base=counted.length?counted:marks;
+  return{marks,score:base.reduce((n,m)=>n+(m[1]?1:m[3]?.5:0),0)/base.length,heard}}
 function listen(target,cb){if(ui.listening){stopRec(false);return}if(ui.thinking)return;if(!hasSR()){cb(null);return}if(S.srOff){S.srOff=false;save()}
   try{if(synth)synth.cancel()}catch(e){}try{AUD.pause()}catch(e){}
   loadSTT().catch(()=>{});
@@ -640,7 +651,7 @@ function vSes(a){
   if(a.kind==="place"&&!fin)h+=`<div class="center" style="display:flex;justify-content:center"><button class="btn link" data-a="idk">Weiß ich nicht</button></div>`;
   if(fin&&!blitz){const ok=it.state==="ok",tier=it.tier||(ok?"ok":"no"),whole=it.type==="build"||it.type==="sent"||it.type==="speak",en=whole?w[2]:w[0],de=whole?w[3]:w[1];
     h+=`<div class="foot ${tier}"><div class="wrap"><div class="row between"><span class="verdict">${tier==="mid"?"Fast richtig! Kleiner Fehler.":ok?(it.typo?"Richtig! Kleiner Tippfehler.":pick(["Richtig!","Super!","Klasse!","Genau!"])):"Nicht ganz."}</span>${ok&&a.kind!=="place"?`<span class="chip star">+${a.combo>=5?15:10} ⭐</span>`:""}</div>
-      ${it.marks?`<p class="marks" style="background:var(--card);border-radius:10px;padding:.35rem .6rem">${it.marks.map(m=>`<span class="${m[1]?"hit":m[2]?"soft":"gap"}">${esc(m[0])}</span>`).join(" ")}</p>`:""}${it.heard?`<p class="small">Verstanden: „${esc(it.heard)}“</p>`:""}${tier==="ok"&&!it.typo?"":`<div class="row"><span class="grow">${tier==="mid"?'<span class="small">So wäre es perfekt:</span><br>':""}<strong class="en">${esc(en)}</strong><br>${esc(de)}</span>${spk(en)}</div>`}
+      ${it.marks?`<p class="marks" style="background:var(--card);border-radius:10px;padding:.35rem .6rem">${it.marks.map(m=>`<span class="${m[1]?"hit":m[3]?"near":m[2]?"soft":"gap"}">${esc(m[0])}</span>`).join(" ")}</p>`:""}${it.heard?`<p class="small">Verstanden: „${esc(it.heard)}“</p>`:""}${tier==="ok"&&!it.typo?"":`<div class="row"><span class="grow">${tier==="mid"?'<span class="small">So wäre es perfekt:</span><br>':""}<strong class="en">${esc(en)}</strong><br>${esc(de)}</span>${spk(en)}</div>`}
       <button class="btn ${tier==="mid"?"pri":ok?"ok":"bad"} block" data-a="next">Weiter</button></div></div>`}
   return h}
 function endv(mood,title,sub,tiles,btns){return `<div class="endv">${tilly(mood,130)}<h2>${title}</h2><p class="muted">${sub}</p>
@@ -738,7 +749,7 @@ function vDlg(a){const d=D[a.i];
   if(a.end)return endv("wow","Gespräch geschafft!",`${a.first} von ${d.st.length} Antworten auf Anhieb richtig.`,[["+"+a.xp,"Punkte"],[a.first+"/"+d.st.length,"auf Anhieb"],[Object.keys(S.dlg).length,"Gespräche"]],`<button class="btn pri block" data-a="dlg" data-i="${a.i}">Noch einmal</button><button class="btn block" data-a="exit">Fertig</button>`);
   let h=`<div class="actbar"><button class="x" data-a="exit" aria-label="Beenden">✕</button><div class="bar"><i style="width:${(a.step+(a.answered?1:0))/d.st.length*100}%"></i></div><span style="font-size:1.6rem">${d.ic}</span></div><div class="chat">`;
   a.log.forEach((m,k)=>{h+=m.who==="npc"?`<div class="msg npc"><div class="line"><span class="grow">${esc(m.en)}</span>${spk(m.en)}</div>${m.show?`<span>${esc(m.de)}</span>`:`<button class="btn link" style="align-self:flex-start;min-height:1.8rem" data-a="dtr" data-k="${k}">Übersetzung zeigen</button>`}</div>`
-    :`<div class="msg me"><span>${esc(m.en)}</span><span class="sub">${esc(m.de)}</span>${m.marks?`<span class="marks">${m.marks.map(x=>`<span class="${x[1]?"hit":x[2]?"soft":"gap"}">${esc(x[0])}</span>`).join(" ")}<br><span class="small">${m.score>=.8?"✓ Gut ausgesprochen!":"Fast. Versuch es noch einmal."}</span></span>`:""}</div>`});
+    :`<div class="msg me"><span>${esc(m.en)}</span><span class="sub">${esc(m.de)}</span>${m.marks?`<span class="marks">${m.marks.map(x=>`<span class="${x[1]?"hit":x[3]?"near":x[2]?"soft":"gap"}">${esc(x[0])}</span>`).join(" ")}<br><span class="small">${m.score>=.8?"✓ Gut ausgesprochen!":"Fast. Versuch es noch einmal."}</span></span>`:""}</div>`});
   h+=`</div>`;
   if(!a.answered)h+=`<p class="prompt" style="font-size:1.15rem">Was antwortest du?</p><div class="opts">${a.opts.map((o,k)=>{const no=a.wrong.indexOf(k)>=0;return `<button class="opt en${no?" wrong shake":""}" data-a="dopt" data-k="${k}"${no?" disabled":""}><span>${esc(o.en)}</span><span>${no?"✗":""}</span></button>`}).join("")}</div>${a.wrong.length?`<p class="small muted">Das passt hier nicht. Lies die Frage noch einmal oder zeig die Übersetzung an.</p>`:""}`;
   else h+=`<div class="foot ok"><div class="wrap"><div class="row between"><span class="verdict">${a.wrong.length?"Richtig!":"Super, auf Anhieb!"}</span><span class="chip star">+${a.wrong.length?5:10} ⭐</span></div>
@@ -759,7 +770,7 @@ function vRep(a){const w=["","",a.en,a.de],r=a.res;
   let h=`<div class="actbar"><button class="x" data-a="exit" aria-label="Beenden">✕</button><h2 class="grow">Nachsprechen</h2><span class="chip star">🎤 ${S.reps}</span></div>
   <div class="qcard"><span class="tag">Sprich diesen Satz</span><div class="row" style="align-self:stretch"><span class="word grow" style="font-size:1.7rem">${esc(w[2])}</span>${spk(w[2])}</div><span>${esc(w[3])}</span></div>`;
   if(r)h+=`<div class="card" style="display:flex;flex-direction:column;gap:.5rem"><p class="verdict" style="color:${r.score>=.8?"var(--ok2)":"var(--bad2)"}">${r.score===1?"Perfekt verstanden!":r.score>=.8?"Fast perfekt!":"Noch nicht ganz."}</p>
-    <p class="marks" style="font-size:1.15rem">${r.marks.map(m=>`<span class="${m[1]?"hit":m[2]?"soft":"gap"}">${esc(m[0])}</span>`).join(" ")}</p><p class="small muted">Verstanden wurde: „${esc(r.heard)}“</p></div>
+    <p class="marks" style="font-size:1.15rem">${r.marks.map(m=>`<span class="${m[1]?"hit":m[3]?"near":m[2]?"soft":"gap"}">${esc(m[0])}</span>`).join(" ")}</p><p class="small muted">Verstanden wurde: „${esc(r.heard)}“</p></div>
     <div class="btns"><button class="btn" data-a="repAgain">Nochmal</button><button class="btn pri" data-a="rep">Nächster Satz</button></div>`;
   else{if(hasSR())h+=`<div class="center" style="display:flex;flex-direction:column;gap:.5rem;padding:.6rem 0"><button class="mic${ui.listening?" on":""}" data-a="rmic" aria-label="Mikrofon"${ui.thinking?" disabled":""}>${ui.thinking?"⏳":MIC}</button><span class="muted">${sttNote()||"Tippen, sprechen, nochmal tippen"}</span><span class="small muted" id="sttp"></span></div>`;
     h+=`<p class="small muted">${hasSR()?"Oder ins Feld tippen und":"Tippe ins Feld und nutze"} die Mikrofon-Taste der Tastatur${hasSR()?" nutzen":""}:</p><div class="say"><input id="say" type="text" lang="en" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="off" placeholder="Hier erscheint dein Satz" value="${esc(a.draft)}" aria-label="Dein Satz"><button class="btn pri" data-a="rcheck">Prüfen</button></div>${hasSR()?"":KBTIP}`}
