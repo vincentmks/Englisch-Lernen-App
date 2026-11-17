@@ -307,11 +307,11 @@ function speak(text,done,slow){const t=String(text).replace(/_/g," ").replace(/\
   if(AMAN&&AMAN[acc].has(k)){try{if(synth)synth.cancel()}catch(e){}curU=null;AUD.pause();let fin=false;
     const ok=()=>{if(fin)return;fin=true;AUD.onended=AUD.onerror=null;if(done)done()};
     const bad=()=>{if(fin)return;fin=true;AUD.onended=AUD.onerror=null;speakSynth(t,done,slow)};
-    const r=slow?.78:(PR[S.rate]||1);AUD.onended=ok;AUD.onerror=bad;AUD.src="audio/"+acc+"/"+k+".mp3";AUD.defaultPlaybackRate=r;AUD.playbackRate=r;AUD.onloadedmetadata=AUD.onplaying=()=>{if(Math.abs(AUD.playbackRate-r)>.01)AUD.playbackRate=r};
+    const r=1;AUD.onended=ok;AUD.onerror=bad;AUD.src="audio/"+acc+"/"+k+".mp3";AUD.defaultPlaybackRate=r;AUD.playbackRate=r;AUD.onloadedmetadata=AUD.onplaying=()=>{if(Math.abs(AUD.playbackRate-r)>.01)AUD.playbackRate=r};
     try{const p=AUD.play();if(p&&p.catch)p.catch(bad)}catch(e){bad()}return}
   speakSynth(t,done,slow)}
 function speakSynth(text,done,slow){const end=()=>{if(done)done()};if(!synth){end();return}
-  try{if(!voices.length)loadVoices();const u=new SpeechSynthesisUtterance(text);const v=voice();if(v)u.voice=v;u.lang=v?v.lang:S.accent;u.rate=slow?.65:S.rate;u.volume=1;
+  try{if(!voices.length)loadVoices();const u=new SpeechSynthesisUtterance(text);const v=voice();if(v)u.voice=v;u.lang=v?v.lang:S.accent;u.rate=.9;u.volume=1;
     let fin=false;const f=()=>{if(fin)return;fin=true;clearTimeout(wd);if(curU===u)curU=null;end()};u.onend=f;u.onerror=f;curU=u;
     const wd=setTimeout(f,2500+text.split(" ").length*700/S.rate);
     if(synth.speaking||synth.pending){synth.cancel();setTimeout(()=>{if(curU===u)synth.speak(u)},120)}else synth.speak(u);
@@ -574,7 +574,6 @@ function vProfile(){const r=rate(),learned=ALL.filter(seen).length,solid=ALL.fil
   <section><h3>Abzeichen</h3><div class="badges">${BADGES.map(b=>`<div class="badge${S.badges[b[0]]?"":" off"}"><span class="em">${b[1]}</span><strong>${b[2]}</strong><span>${b[3]}</span></div>`).join("")}</div></section>
   <section><h3>Einstellungen</h3><div class="card" style="display:flex;flex-direction:column;gap:.9rem">
    <div class="setting"><span>Aussprache</span>${seg("accent",[["en-GB","Britisch"],["en-US","Amerikanisch"]])}</div>
-   <div class="setting"><span>Sprechtempo</span>${seg("rate",[[.7,"Langsam"],[.85,"Mittel"],[1,"Normal"]])}</div>
    <div class="setting"><span>Tagesziel</span>${seg("goal",[[30,"30 ⭐"],[60,"60 ⭐"],[100,"100 ⭐"]])}</div>
    <div class="setting"><span>Töne</span>${seg("sound",[["true","An"],["false","Aus"]])}</div>
    <div class="setting"><span>Stufe selbst wählen</span>${seg("level",[[1,"1"],[2,"2"],[3,"3"],[4,"4"],[5,"5"],[6,"6"],[7,"7"]])}</div>
@@ -584,8 +583,7 @@ function vProfile(){const r=rate(),learned=ALL.filter(seen).length,solid=ALL.fil
      <span>Ersatzstimme: ${(()=>{const v=voice();return v?esc(v.name+" ("+v.lang+")"):"Standard"})()} · ${voices.filter(v=>(v.lang||"").indexOf("en")===0).length} englische Stimmen</span>
      <span>Spracherkennung (Whisper, auf dem Handy): ${!hasSR()&&!S.srOff?"nicht verfügbar":S.srOff?"ausgeschaltet":sttState==="ready"?"geladen":sttState==="loading"?"wird geladen":sttState==="error"?"Laden fehlgeschlagen":"wird beim ersten Sprechen geladen"} · ${standalone()?"installierte App":"Browser"}</span>
      ${S.srOff?`<button class="btn" data-a="srOn">App-Mikrofon noch einmal probieren</button>`:hasSR()&&sttState!=="ready"?`<button class="btn" data-a="sttLoad"${sttState==="loading"?" disabled":""}>Spracherkennung jetzt laden (im WLAN)</button><span id="sttp"></span>`:""}</div></details>
-   <p class="small muted">Tipp: Zweimal hintereinander auf einen Lautsprecher tippen spielt den Satz langsamer ab.</p>
-   <p class="small muted">Kein Ton? Prüfe die Lautstärke. Steht der Lautlos-Schalter auf lautlos, ist nur die Ersatzstimme stumm.</p>
+      <p class="small muted">Kein Ton? Prüfe die Lautstärke. Steht der Lautlos-Schalter auf lautlos, ist nur die Ersatzstimme stumm.</p>
    <p class="small muted">Dein Fortschritt bleibt auf diesem Handy gespeichert. Wenn du die App löschst, ist er weg.</p>
    ${ui.resetAsk?`<div class="setting"><span>Wirklich alles löschen?</span><span class="row"><button class="btn bad" data-a="resetYes">Löschen</button><button class="btn" data-a="resetNo">Nein</button></span></div>`:`<div><button class="btn link" data-a="resetAsk">Fortschritt löschen</button></div>`}
   </div></section>`}
@@ -756,7 +754,7 @@ function dres(a,m,res){m.marks=res.marks;m.score=res.score;if(res.score>=.8){bee
 function finishGram(a){a.end=true;hush();const n=a.q.length,st=a.right>=n-1?3:a.right>=n-2?2:a.right>=n/2?1:0;if(st>(S.gram[a.i]||0))S.gram[a.i]=st;a.xp+=st*5;gain(st*5);save();checkBadges();if(st>=2){confetti();beep("win")}render()}
 /* ================= Aktionen ================= */
 const ACT={
-  say(d){const now=Date.now(),slow=lastSay.t===d.s&&now-lastSay.at<8000;lastSay={t:slow?"":d.s,at:now};if(slow)toast("🐢 Langsamer");speak(d.s,null,slow)},
+  say(d){speak(d.s)},
   topic(d){startLesson(+d.i)},
   review(){startReview()},quiz(){startQuiz()},blitz(){startBlitz()},pairs(){startPairs()},
   text(d){hush();ui.act={type:"text",i:+d.i,open:{},ans:{},reading:false};go()},
